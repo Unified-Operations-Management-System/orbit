@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Orbit API
+  version: 0.1.0
+paths:
+  /hello:
+    get:
+      operationId: getHello
+      responses:
+        "200":
+          description: A greeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelloResponse"
+components:
+  schemas:
+    HelloResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

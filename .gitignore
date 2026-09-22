@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.local
+.env*.local
+!.env.example
+
+# build output
+.next/
+dist/
+build/
+services/api/bin/
+
+# turborepo
+.turbo/
+
+# editors / OS
+.vscode/*
+!.vscode/settings.json
+.idea/
+.DS_Store

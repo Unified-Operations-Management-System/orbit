@@ -1,0 +1,8 @@
+{
+  "name": "orbit",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "generate": "pnpm --filter @orbit/api-client generate && cd services/api && go generate ./..."
+  }
+}
