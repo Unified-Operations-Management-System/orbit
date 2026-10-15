@@ -21,3 +21,10 @@ services/api/bin/
 !.vscode/settings.json
 .idea/
 .DS_Store
+
+# clangd
+.cache/
+compile_commands.json
+
+# build output
+build/
