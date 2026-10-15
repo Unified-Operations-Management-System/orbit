@@ -21,3 +21,7 @@ services/api/bin/
 !.vscode/settings.json
 .idea/
 .DS_Store
+
+# Owais's stuff
+history.txt
+tree.txt
