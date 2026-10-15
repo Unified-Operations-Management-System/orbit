@@ -1,0 +1,13 @@
+parameters:
+  - $ref: "../parameters/run-id.yaml"
+get:
+  operationId: getRun
+  summary: Get the status of a run
+  responses:
+    "200":
+      description: Run status, with the summary once finished
+      content:
+        application/json:
+          schema: { $ref: "../schemas/run/run.yaml#/Run" }
+    "404":
+      description: Unknown run

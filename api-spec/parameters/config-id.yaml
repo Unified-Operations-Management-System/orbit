@@ -1,0 +1,4 @@
+name: config_id
+in: path
+required: true
+schema: { $ref: "../schemas/factory/stable-id.yaml#/StableId" }

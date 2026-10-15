@@ -1,0 +1,14 @@
+parameters:
+  - $ref: "../parameters/config-id.yaml"
+get:
+  operationId: getConfig
+  summary: Get a frozen config definition
+  description: Immutable frozen definition. Safe to cache forever.
+  responses:
+    "200":
+      description: The published factory definition
+      content:
+        application/json:
+          schema: { $ref: "../schemas/factory/factory-definition.yaml#/FactoryDef" }
+    "404":
+      description: Unknown config

@@ -2,22 +2,32 @@ openapi: 3.0.3
 info:
   title: Orbit API
   version: 0.1.0
+
+servers:
+  - url: localhost:8080
+
 paths:
-  /hello:
-    get:
-      operationId: getHello
-      responses:
-        "200":
-          description: A greeting
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HelloResponse"
+  /factories/{factory_id}/draft:
+    $ref: "paths/factory-draft.yaml"
+  /factories/{factory_id}/publish:
+    $ref: "paths/factory-publish.yaml"
+  /runs/{run_id}:
+    $ref: "paths/run.yaml"
+  /runs/{run_id}/trace:
+    $ref: "paths/run-trace.yaml"
+  /configs/{config_id}:
+    $ref: "paths/config.yaml"
+
 components:
   schemas:
-    HelloResponse:
-      type: object
-      required: [message]
-      properties:
-        message:
-          type: string
+    StableId:           { $ref: "schemas/factory/stable-id.yaml#/StableId" }
+    Duration:           { $ref: "schemas/factory/duration.yaml#/Duration" }
+    NodeDef:            { $ref: "schemas/factory/node.yaml#/NodeDef" }
+    PortRef:            { $ref: "schemas/factory/edge.yaml#/PortRef" }
+    EdgeDef:            { $ref: "schemas/factory/edge.yaml#/EdgeDef" }
+    ItemTypeDef:        { $ref: "schemas/factory/item-type.yaml#/ItemTypeDef" }
+    FactoryDef:         { $ref: "schemas/factory/factory-definition.yaml#/FactoryDef" }
+    Run:                { $ref: "schemas/run/run.yaml#/Run" }
+    PublishRequest:     { $ref: "schemas/run/publish.yaml#/PublishRequest" }
+    PublishResponse:    { $ref: "schemas/run/publish.yaml#/PublishResponse" }
+    ValidationError:    { $ref: "schemas/run/validation-error.yaml#/ValidationError" }

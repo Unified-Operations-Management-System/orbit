@@ -1,0 +1,28 @@
+parameters:
+  - $ref: "../parameters/factory-id.yaml"
+get:
+  operationId: getDraft
+  summary: Get the current draft
+  description: Returns the current draft, if any. If no draft exists, returns 404
+  responses:
+    "200":
+      description: Current working draft
+      content:
+        application/json:
+          schema: { $ref: "../schemas/factory/factory-definition.yaml#/FactoryDef" }
+    "404":
+      description: No draft yet
+put:
+  operationId: putDraft
+  summary: Save the current draft
+  description: Saves the draft as-is. Structural checks only, so partial work is allowed.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/factory/factory-definition.yaml#/FactoryDef" }
+  responses:
+    "204":
+      description: Saved
+    "422":
+      $ref: "../responses/validation-error.yaml"

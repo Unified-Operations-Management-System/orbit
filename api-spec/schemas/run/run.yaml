@@ -1,0 +1,22 @@
+Run:
+  type: object
+  required: [id, config_id, seed, status]
+  properties:
+    id: { $ref: "../factory/stable-id.yaml#/StableId" }
+    config_id: { $ref: "../factory/stable-id.yaml#/StableId" }
+    seed: { type: integer, format: int64 }
+    status:
+      type: string
+      enum: [queued, running, succeeded, failed]
+    failure:
+      description: Present only when status is failed.
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: "e.g. model_error, tick_storm, timeout"
+        message: { type: string }
+    summary:
+      description: The sim's summary JSON. Present only when succeeded. Schema TBD.
+      type: object
