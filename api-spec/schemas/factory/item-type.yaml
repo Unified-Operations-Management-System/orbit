@@ -1,0 +1,25 @@
+ItemTypeDef:
+  type: object
+  required: [id, name]
+  properties:
+    id: { $ref: "stable-id.yaml#/StableId" }
+    name: { type: string, minLength: 1 }
+    tracking:
+      $ref: "#/TrackingDef"
+
+TrackingDef:
+  type: object
+  description: Opt-in tracking. Absent or false means the sim doesn't track it.
+  properties:
+    expiry:
+      type: object
+      required: [shelf_life]
+      properties:
+        shelf_life: { $ref: "duration.yaml#/Duration" }
+
+ItemQty:
+  type: object
+  required: [item_type, quantity]
+  properties:
+    item_type: { $ref: "stable-id.yaml#/StableId" }
+    quantity: { type: integer, minimum: 1 }

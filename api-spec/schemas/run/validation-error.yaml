@@ -1,0 +1,17 @@
+ValidationError:
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        type: object
+        required: [path, code, message]
+        properties:
+          path:
+            type: string
+            description: "JSON path, e.g. nodes[3].process.duration.hi"
+          code:
+            type: string
+            description: "Machine-readable, e.g. port_direction_mismatch"
+          message: { type: string }

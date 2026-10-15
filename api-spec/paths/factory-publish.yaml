@@ -1,0 +1,21 @@
+parameters:
+  - $ref: "../parameters/factory-id.yaml"
+post:
+  operationId: publishFactory
+  summary: Publish a factory draft
+  description: Validates the draft in full, freezes it as an immutable config, and starts a run.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/run/publish.yaml#/PublishRequest" }
+  responses:
+    "201":
+      description: Config frozen and run started
+      content:
+        application/json:
+          schema: { $ref: "../schemas/run/publish.yaml#/PublishResponse" }
+    "404":
+      description: No draft to publish
+    "422":
+      $ref: "../responses/validation-error.yaml"
