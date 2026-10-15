@@ -2,6 +2,7 @@
 
 #include "kernel/event.hpp"
 #include "kernel/priority.hpp"
+
 #include <string_view>
 
 namespace sim::kernel {
@@ -39,6 +40,12 @@ public:
   void schedule_self(sim_time delay, event_kind kind, payload data = {},
                      schedule_options opts = {}) {
     _services->schedule(_self, _self, delay, kind, data, opts);
+  }
+
+  void cancel(channel chan) { _services->cancel(_self, chan); }
+
+  void request_stop(std::string_view reason) {
+    _services->request_stop(_self, reason);
   }
 
   block_id self() const noexcept { return _self; }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "priority.hpp"
+#include "kernel/priority.hpp"
 
 #include <compare>
 #include <cstdint>
