@@ -1,12 +1,9 @@
-import { connection } from "next/server";
-import { api } from "@/lib/api";
-import { deleteTodo, toggleTodo } from "./actions";
+import { deleteTodo, toggleTodo } from "../actions";
+import { getTodos } from "../queries";
 
 // Server Component: fetches from Go at request time and streams in under <Suspense>.
 export async function TodoList() {
-  await connection(); // per-request data: don't prerender at build time
-
-  const { data: todos, error } = await api.GET("/todos");
+  const { data: todos, error } = await getTodos();
 
   if (error || !todos) {
     return <p className="text-red-600">Couldn&apos;t reach the Go API. Is it running on :8080?</p>;
