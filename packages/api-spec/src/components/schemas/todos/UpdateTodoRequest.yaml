@@ -1,0 +1,8 @@
+title: UpdateTodoRequest
+type: object
+additionalProperties: false
+required: [done]
+properties:
+  done:
+    type: boolean
+    description: The new value of the `done` flag.

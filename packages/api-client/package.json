@@ -1,17 +1,21 @@
 {
   "name": "@orbit/api-client",
-  "version": "0.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "generate": "openapi-typescript ../../api-spec/openapi.yaml -o src/schema.d.ts"
+    "generate": "openapi-typescript ../api-spec/dist/openapi.yaml -o src/schema.gen.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
+    "@orbit/api-spec": "workspace:*",
+    "@orbit/tsconfig": "workspace:*",
     "openapi-typescript": "^7.13.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5"
   }
 }

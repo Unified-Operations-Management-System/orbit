@@ -1,0 +1,14 @@
+get:
+  operationId: getHealth
+  summary: Health check
+  description: Returns `ok` when the API process is up.
+  tags: [system]
+  responses:
+    "200":
+      description: The API is healthy.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/system/Health.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

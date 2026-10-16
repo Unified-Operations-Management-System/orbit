@@ -1,0 +1,12 @@
+title: FieldError
+type: object
+required: [location, message]
+properties:
+  location:
+    type: string
+    description: Where the error is, e.g. `body.title` or `path.id`.
+    examples: [body.title]
+  message:
+    type: string
+    description: What is wrong with the value.
+    examples: [must be at least 1 character]

@@ -1,0 +1,290 @@
+openapi: 3.1.0
+info:
+  title: Orbit API
+  version: 1.0.0
+  description: |
+    The contract between the Go API, the Next.js web app and the Expo mobile app.
+
+    This file and everything under `src/` is hand-written and is the single source of
+    truth. The Go server interfaces and the TypeScript client are generated from it.
+    See `packages/api-spec/README.md` for how to propose a change.
+servers:
+  - url: /
+    description: Same host the client is configured to call
+tags:
+  - name: system
+    description: Operational endpoints.
+  - name: todos
+    description: Todo items.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      description: Returns `ok` when the API process is up.
+      tags:
+        - system
+      responses:
+        '200':
+          description: The API is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /todos:
+    get:
+      operationId: listTodos
+      summary: List todos
+      description: Returns every todo, oldest first.
+      tags:
+        - todos
+      responses:
+        '200':
+          description: All todos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+              example:
+                - id: 1
+                  title: Read the README
+                  done: false
+                  createdAt: '2026-10-15T09:00:00Z'
+                - id: 2
+                  title: Propose an API change in packages/api-spec
+                  done: true
+                  createdAt: '2026-10-15T09:05:00Z'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    post:
+      operationId: createTodo
+      summary: Create a todo
+      description: Creates a todo that is not done yet.
+      tags:
+        - todos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '201':
+          description: The created todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /todos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TodoId'
+    patch:
+      operationId: updateTodo
+      summary: Mark a todo done or not done
+      description: Sets the `done` flag of one todo.
+      tags:
+        - todos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+      responses:
+        '200':
+          description: The updated todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    delete:
+      operationId: deleteTodo
+      summary: Delete a todo
+      description: Permanently removes one todo.
+      tags:
+        - todos
+      responses:
+        '204':
+          description: The todo was deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+components:
+  schemas:
+    FieldError:
+      title: FieldError
+      type: object
+      required:
+        - location
+        - message
+      properties:
+        location:
+          type: string
+          description: Where the error is, e.g. `body.title` or `path.id`.
+          examples:
+            - body.title
+        message:
+          type: string
+          description: What is wrong with the value.
+          examples:
+            - must be at least 1 character
+    Problem:
+      title: Problem
+      description: An error, as RFC 9457 problem details, with an optional list of field errors.
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+          description: A URI identifying the problem type.
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+          examples:
+            - Unprocessable Entity
+        status:
+          type: integer
+          description: The HTTP status code.
+          examples:
+            - 422
+        detail:
+          type: string
+          description: A human-readable explanation of this occurrence.
+          examples:
+            - validation failed
+        errors:
+          type: array
+          description: Field-level errors, present when request validation fails.
+          items:
+            $ref: '#/components/schemas/FieldError'
+    Health:
+      title: Health
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          description: Always `ok` when the process can serve requests.
+    Todo:
+      title: Todo
+      type: object
+      required:
+        - id
+        - title
+        - done
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Todo ID.
+          examples:
+            - 1
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: What needs doing.
+          examples:
+            - Ship it
+        done:
+          type: boolean
+          description: Whether it is finished.
+        createdAt:
+          type: string
+          format: date-time
+          description: When it was created (UTC).
+    CreateTodoRequest:
+      title: CreateTodoRequest
+      type: object
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: What needs doing.
+          examples:
+            - Ship it
+    UpdateTodoRequest:
+      title: UpdateTodoRequest
+      type: object
+      additionalProperties: false
+      required:
+        - done
+      properties:
+        done:
+          type: boolean
+          description: The new value of the `done` flag.
+  responses:
+    UnexpectedError:
+      description: Unexpected error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Internal Server Error
+            status: 500
+            detail: something went wrong
+    ValidationFailed:
+      description: The request does not match the contract.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Unprocessable Entity
+            status: 422
+            detail: validation failed
+            errors:
+              - location: body.title
+                message: must be at least 1 character
+    NotFound:
+      description: The resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Not Found
+            status: 404
+            detail: todo not found
+  parameters:
+    TodoId:
+      name: id
+      in: path
+      required: true
+      description: Todo ID.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1

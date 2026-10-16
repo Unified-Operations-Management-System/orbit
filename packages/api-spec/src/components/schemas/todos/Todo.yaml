@@ -1,0 +1,23 @@
+title: Todo
+type: object
+required: [id, title, done, createdAt]
+properties:
+  id:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Todo ID.
+    examples: [1]
+  title:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: What needs doing.
+    examples: [Ship it]
+  done:
+    type: boolean
+    description: Whether it is finished.
+  createdAt:
+    type: string
+    format: date-time
+    description: When it was created (UTC).

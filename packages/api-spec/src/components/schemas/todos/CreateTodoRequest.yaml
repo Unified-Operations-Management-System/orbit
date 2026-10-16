@@ -1,0 +1,11 @@
+title: CreateTodoRequest
+type: object
+additionalProperties: false
+required: [title]
+properties:
+  title:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: What needs doing.
+    examples: [Ship it]
