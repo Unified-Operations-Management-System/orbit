@@ -1,0 +1,21 @@
+parameters:
+  - $ref: "../parameters/run-id.yaml"
+get:
+  operationId: getRunTrace
+  summary: Get the trace of a run
+  description: Binary trace. Supports Range requests so the client can seek via keyframes.
+  responses:
+    "200":
+      description: Full trace
+      content:
+        application/octet-stream:
+          schema: { type: string, format: binary }
+    "206":
+      description: Partial trace (Range request)
+      content:
+        application/octet-stream:
+          schema: { type: string, format: binary }
+    "404":
+      description: Unknown run
+    "409":
+      description: Run has not succeeded

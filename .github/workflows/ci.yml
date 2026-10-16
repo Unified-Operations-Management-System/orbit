@@ -13,8 +13,8 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: apps/api/go.mod
-          cache-dependency-path: apps/api/go.sum
+          go-version-file: services/api/go.mod
+          cache-dependency-path: services/api/go.sum
 
       - uses: pnpm/action-setup@v6 # reads the version from "packageManager"
 
@@ -32,7 +32,7 @@ jobs:
           pnpm turbo run generate
           git diff --exit-code -- \
             packages/api-spec/dist/openapi.yaml \
-            apps/api/internal/oapi/oapi.gen.go \
+            services/api/internal/oapi/oapi.gen.go \
             packages/api-client/src/schema.gen.ts
 
       # lint includes `redocly lint` on the spec. test includes the Go contract tests,

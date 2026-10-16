@@ -1,7 +1,7 @@
 # Production-like local run:  docker compose up --build
 services:
   api:
-    build: ./apps/api
+    build: ./services/api
     ports:
       - "8080:8080"
 

@@ -166,15 +166,12 @@ importers:
 
   .:
     devDependencies:
+      '@redocly/cli':
+        specifier: ^2.64.0
+        version: 2.64.0
       turbo:
         specifier: ^2.11.8
         version: 2.11.8
-
-  apps/api:
-    devDependencies:
-      '@orbit/api-spec':
-        specifier: workspace:*
-        version: link:../../packages/api-spec
 
   apps/mobile:
     dependencies:
@@ -290,6 +287,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+      server-only:
+        specifier: ^0.0.1
+        version: 0.0.1
     devDependencies:
       '@orbit/tsconfig':
         specifier: workspace:*
@@ -348,6 +348,14 @@ importers:
         version: 5.16.0(supports-color@10.2.2)
 
   packages/tsconfig: {}
+
+  services/api:
+    devDependencies:
+      '@orbit/api-spec':
+        specifier: workspace:*
+        version: link:../../packages/api-spec
+
+  services/sim: {}
 
 packages:
 

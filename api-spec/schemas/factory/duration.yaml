@@ -1,0 +1,30 @@
+Ticks:
+  type: integer
+  format: int64
+  minimum: 0
+  description: Simulation time in integer ticks. Tick length is set by the factory (TBD).
+
+FixedDuration:
+  type: object
+  required: [kind, ticks]
+  properties:
+    kind: { type: string, enum: [fixed] }
+    ticks: { $ref: "#/Ticks" }
+
+UniformDuration:
+  type: object
+  required: [kind, lo, hi]
+  properties:
+    kind: { type: string, enum: [uniform] }
+    lo: { $ref: "#/Ticks" }
+    hi: { $ref: "#/Ticks" }
+
+Duration:
+  oneOf:
+    - $ref: "#/FixedDuration"
+    - $ref: "#/UniformDuration"
+  discriminator:
+    propertyName: kind
+    mapping:
+      fixed: "#/FixedDuration"
+      uniform: "#/UniformDuration"

@@ -3,6 +3,7 @@ node_modules/
 .next/
 out/
 dist/
+
 # The bundled contract is committed: CI diffs it and oasdiff compares it across branches.
 !packages/api-spec/dist/
 coverage/
@@ -10,8 +11,8 @@ coverage/
 next-env.d.ts
 
 # Go
-apps/api/bin/
-apps/api/tmp/
+services/api/bin/
+services/api/tmp/
 
 # env
 .env
@@ -26,3 +27,10 @@ tree.txt
 
 # Local AI assistant settings
 .claude/
+
+# clangd
+.cache/
+compile_commands.json
+
+# build output
+build/

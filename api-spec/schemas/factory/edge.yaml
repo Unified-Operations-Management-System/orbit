@@ -1,0 +1,15 @@
+PortRef:
+  type: object
+  required: [node, port]
+  properties:
+    node: { $ref: "stable-id.yaml#/StableId" }
+    port: { $ref: "stable-id.yaml#/StableId" }
+
+EdgeDef:
+  type: object
+  required: [id, from, to, transit]
+  properties:
+    id: { $ref: "stable-id.yaml#/StableId" }
+    from: { $ref: "#/PortRef" }
+    to: { $ref: "#/PortRef" }
+    transit: { $ref: "duration.yaml#/Duration" }

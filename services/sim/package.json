@@ -1,0 +1,10 @@
+{
+  "name": "sim",
+  "private": true,
+  "description": "C++ simulation service",
+  "scripts": {
+    "generate": "cmake -S . -B build -DSIM_BUILD_TESTS=ON",
+    "build": "cmake --build build",
+    "test": "ctest --test-dir build --output-on-failure"
+  }
+}

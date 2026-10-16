@@ -1,0 +1,15 @@
+PublishRequest:
+  type: object
+  required: [seed]
+  properties:
+    seed: { type: integer, format: int64 }
+    end:
+      description: Run-end condition. Absent means the factory default. Schema TBD.
+      type: object
+
+PublishResponse:
+  type: object
+  required: [config_id, run_id]
+  properties:
+    config_id: { $ref: "../factory/stable-id.yaml#/StableId" }
+    run_id: { $ref: "../factory/stable-id.yaml#/StableId" }

@@ -1,0 +1,60 @@
+LayoutDef:
+  type: object
+  required: [x, y]
+  properties:
+    x: { type: number }
+    y: { type: number }
+    rotation:
+      type: integer
+      enum: [0, 90, 180, 270]
+      default: 0
+
+NodeDef:
+  type: object
+  required: [id, name, ports, holding, layout]
+  properties:
+    id: { $ref: "stable-id.yaml#/StableId" }
+    name: { type: string, minLength: 1 }
+    ports:
+      type: array
+      items: { $ref: "#/PortDef" }
+    holding: { $ref: "#/HoldingDef" }
+    process: { $ref: "#/ProcessDef" }
+    layout: { $ref: "#/LayoutDef" }
+
+RecipeDef:
+  type: object
+  description: Both lists may be empty, but not both at once.
+  properties:
+    consumes:
+      type: array
+      items: { $ref: "item-type.yaml#/ItemQty" }
+    produces:
+      type: array
+      items: { $ref: "item-type.yaml#/ItemQty" }
+
+PortDef:
+  type: object
+  required: [id, name, dir]
+  properties:
+    id: { $ref: "stable-id.yaml#/StableId" }
+    name: { type: string, minLength: 1 }
+    dir: { type: string, enum: [in, out] }
+    accepts:
+      type: array
+      items: { $ref: "stable-id.yaml#/StableId" }
+      description: Item type IDs. Empty or absent means accepts anything.
+
+HoldingDef:
+  type: object
+  properties:
+    capacity: { type: integer, minimum: 1, description: Absent means unbounded. }
+    order: { type: string, enum: [fifo, lifo], default: fifo }
+
+ProcessDef:
+  type: object
+  required: [duration]
+  properties:
+    duration: { $ref: "duration.yaml#/Duration" }
+    concurrency: { type: integer, minimum: 1, default: 1 }
+    recipe: { $ref: "#/RecipeDef" }

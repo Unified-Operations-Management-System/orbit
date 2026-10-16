@@ -1,0 +1,20 @@
+FactoryDef:
+  type: object
+  required: [schema_version, name, tick_us, nodes, edges]
+  properties:
+    schema_version: { type: integer, minimum: 1 }
+    name: { type: string, minLength: 1 }
+    tick_us:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Microseconds per tick. Resolves the tick length TBD in duration.yaml.
+    nodes:
+      type: array
+      items: { $ref: "node.yaml#/NodeDef" }
+    edges:
+      type: array
+      items: { $ref: "edge.yaml#/EdgeDef" }
+    item_types:
+      type: array
+      items: { $ref: "item-type.yaml#/ItemTypeDef" }

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "generate": {
+      "outputs": ["build/**"]
+    },
+    "build": {
+      "dependsOn": ["generate"],
+      "inputs": ["CMakeLists.txt", "src/**", "tests/**"],
+      "outputs": ["build/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": ["CMakeLists.txt", "src/**", "tests/**"]
+    }
+  }
+}

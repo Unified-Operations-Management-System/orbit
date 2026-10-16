@@ -16,9 +16,11 @@
     "typecheck": "turbo run typecheck",
     "gen": "turbo run generate",
     "api:breaking": "pnpm --filter @orbit/api-spec run breaking",
-    "api:changelog": "pnpm --filter @orbit/api-spec run changelog"
+    "api:changelog": "pnpm --filter @orbit/api-spec run changelog",
+    "generate": "pnpm --filter @orbit/api-client generate && cd services/api && go generate ./..."
   },
   "devDependencies": {
-    "turbo": "^2.11.8"
+    "turbo": "^2.11.8",
+    "@redocly/cli": "^2.64.0"
   }
 }
