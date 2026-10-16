@@ -1,34 +1,30 @@
-SPEC_DIR     := api-spec
-SPEC_ENTRY   := openapi.yaml
-BUNDLE_DIR   := dist
-BUNDLE       := $(BUNDLE_DIR)/openapi.bundled.yaml
-OAPI_CONFIG  := services/api/oapi-codegen.yaml
+SPEC_DIR   := packages/api-spec
+SPEC_ENTRY := src/openapi.yaml
+BUNDLE     := $(SPEC_DIR)/dist/openapi.yaml
 
-SPEC_FILES := $(shell find $(SPEC_DIR) -name '*.yaml')
-
-.PHONY: spec-lint spec-bundle gen-go gen clean help
+.PHONY: spec-lint spec-bundle gen-go gen-ts gen clean help
 
 help:
 	@echo "spec-lint    lint the split OpenAPI spec"
 	@echo "spec-bundle  lint, then bundle into $(BUNDLE)"
-	@echo "gen-go       generate Go server code from the bundle"
+	@echo "gen-go       generate the Go server code from the bundle"
+	@echo "gen-ts       generate the TypeScript client from the bundle"
 	@echo "gen          run everything"
-	@echo "clean        remove $(BUNDLE_DIR)"
+	@echo "clean        remove local build output"
 
 spec-lint:
-	cd $(SPEC_DIR) && npx redocly lint $(SPEC_ENTRY)
+	pnpm --filter @orbit/api-spec lint
 
-$(BUNDLE): $(SPEC_FILES)
-	@mkdir -p $(BUNDLE_DIR)
-	cd $(SPEC_DIR) && npx redocly lint $(SPEC_ENTRY)
-	cd $(SPEC_DIR) && npx redocly bundle $(SPEC_ENTRY) -o ../$(BUNDLE)
+spec-bundle:
+	pnpm --filter @orbit/api-spec generate
 
-spec-bundle: $(BUNDLE)
+gen-go: spec-bundle
+	pnpm --filter api generate
 
-gen-go: $(BUNDLE)
-	oapi-codegen -config $(OAPI_CONFIG) $(BUNDLE)
+gen-ts: spec-bundle
+	pnpm --filter @orbit/api-client generate
 
-gen: gen-go
+gen: gen-go gen-ts
 
 clean:
-	rm -rf $(BUNDLE_DIR)
+	rm -rf services/api/bin services/sim/build

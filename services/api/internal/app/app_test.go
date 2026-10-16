@@ -14,7 +14,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/getkin/kin-openapi/routers/gorillamux"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 // contractClient sends requests through the real HTTP stack and checks every

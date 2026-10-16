@@ -9,7 +9,7 @@ package server
 import (
 	"context"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 type Server struct {

@@ -166,15 +166,12 @@ importers:
 
   .:
     devDependencies:
+      '@redocly/cli':
+        specifier: ^2.64.0
+        version: 2.64.0
       turbo:
         specifier: ^2.11.8
         version: 2.11.8
-
-  apps/api:
-    devDependencies:
-      '@orbit/api-spec':
-        specifier: workspace:*
-        version: link:../../packages/api-spec
 
   apps/mobile:
     dependencies:
@@ -348,6 +345,14 @@ importers:
         version: 5.16.0(supports-color@10.2.2)
 
   packages/tsconfig: {}
+
+  services/api:
+    devDependencies:
+      '@orbit/api-spec':
+        specifier: workspace:*
+        version: link:../../packages/api-spec
+
+  services/sim: {}
 
 packages:
 

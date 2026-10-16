@@ -34,7 +34,7 @@ public:
   kernel(const kernel &) = delete;
   kernel &operator=(const kernel &) = delete;
 
-  void add_block(std::unique_ptr<block> blk);
+  block_id add_block(std::unique_ptr<block> blk);
 
   [[nodiscard]] run_result run();
 
@@ -51,7 +51,7 @@ public:
 
 private:
   struct slot {
-    std::unique_ptr<block> block;
+    std::unique_ptr<block> instance;
     context ctx;
     std::size_t gen_offset;
     std::size_t channel_count;

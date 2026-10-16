@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/httpx"
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/server"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/httpx"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/server"
 )
 
 // NewHandler returns the full API handler. allowedOrigins is a comma-separated

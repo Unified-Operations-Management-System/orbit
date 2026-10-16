@@ -35,6 +35,8 @@ block_id kernel::add_block(std::unique_ptr<block> blk) {
 
 void kernel::schedule(block_id from, block_id target, sim_time delay,
                       event_kind kind, payload data, schedule_options opts) {
+  (void)from;
+
   if (delay < 0)
     throw model_error("kernel::schedule() called with negative delay");
 
@@ -46,11 +48,11 @@ void kernel::schedule(block_id from, block_id target, sim_time delay,
 
   generation gen = 0;
   if (opts.chan != no_channel) {
-    const slot &t = _slots[target];
-    if (opts.chan >= t.channel_count)
+    const slot &target_slot = _slots[target];
+    if (opts.chan >= target_slot.channel_count)
       throw model_error("kernel::schedule() called with invalid channel");
 
-    gen = _generations[t.gen_offset + opts.chan];
+    gen = _generations[target_slot.gen_offset + opts.chan];
   }
 
   _queue.push(event{
@@ -66,14 +68,16 @@ void kernel::schedule(block_id from, block_id target, sim_time delay,
 }
 
 void kernel::cancel(block_id self, channel chan) {
-  const slot &slot = _slots[self];
-  if (chan >= slot.channel_count)
+  const slot &current_slot = _slots[self];
+  if (chan >= current_slot.channel_count)
     throw model_error("kernel::cancel() called with invalid channel");
 
-  ++_generations[slot.gen_offset + chan];
+  ++_generations[current_slot.gen_offset + chan];
 }
 
 void kernel::request_stop(block_id from, std::string_view reason) {
+  (void)from;
+
   if (_stop_requested)
     return;
 
@@ -98,7 +102,7 @@ run_result kernel::run() {
     result.detail = std::move(msg);
   };
 
-  auto guarded = [&](block_id id, auto &&call) {
+  auto guarded = [&](auto &&call) {
     try {
       call();
     } catch (const model_error &e) {
@@ -115,7 +119,7 @@ run_result kernel::run() {
       break;
 
     slot &s = _slots[i];
-    guarded(static_cast<block_id>(i), [&]() { s.block->init(s.ctx); });
+    guarded([&]() { s.instance->init(s.ctx); });
   }
 
   std::uint64_t tick_events = 0;
@@ -151,13 +155,13 @@ run_result kernel::run() {
     }
 
     slot &s = _slots[e.target];
-    guarded(e.target, [&]() { s.block->handle(s.ctx, e); });
+    guarded([&]() { s.instance->handle(s.ctx, e); });
     ++_stats.events_dispatched;
   }
 
   for (std::size_t i = 0; i < _slots.size(); ++i) {
     slot &s = _slots[i];
-    guarded(static_cast<block_id>(i), [&]() { s.block->finish(s.ctx); });
+    guarded([&]() { s.instance->finish(s.ctx); });
   }
 
   _stats.final_time = _now;

@@ -7,7 +7,7 @@
 *                                        @your-org/platform
 
 # ── Apps ────────────────────────────────────────────────────────────────────
-/apps/api/                               @your-org/backend
+/services/api/                            @your-org/backend
 /apps/web/                               @your-org/web
 /apps/mobile/                            @your-org/mobile
 
@@ -27,4 +27,4 @@
 
 # Generated from the spec: approved along with the spec change that produced them.
 /packages/api-client/src/schema.gen.ts   @your-org/api-reviewers
-/apps/api/internal/oapi/                 @your-org/api-reviewers
+/services/api/internal/oapi/              @your-org/api-reviewers

@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/app"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/app"
 )
 
 func main() {

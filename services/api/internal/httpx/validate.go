@@ -12,7 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 // RequestValidator rejects any request that doesn't match the OpenAPI contract

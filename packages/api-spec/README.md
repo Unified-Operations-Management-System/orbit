@@ -9,7 +9,7 @@ src/**/*.yaml  (hand-written, split by domain)
      │  redocly bundle
      ▼
 dist/openapi.yaml  (committed)
-     ├──► oapi-codegen      → apps/api/internal/oapi/oapi.gen.go   (Go server interface + models)
+     ├──► oapi-codegen      → services/api/internal/oapi/oapi.gen.go   (Go server interface + models)
      ├──► openapi-typescript → packages/api-client/src/schema.gen.ts (TS types for web + mobile)
      ├──► Prism              → mock server on :4010
      └──► oasdiff            → breaking-change check in CI

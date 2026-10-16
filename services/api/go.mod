@@ -1,4 +1,4 @@
-module github.com/Unified-Operations-Management-System/orbit/apps/api
+module github.com/Unified-Operations-Management-System/orbit/services/api
 
 go 1.27.0
 

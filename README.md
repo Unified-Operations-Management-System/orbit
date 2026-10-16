@@ -120,14 +120,16 @@ V&V Champion for their own area (see [the solution table](#the-solution)).
 ```
 orbit/
 ├── apps/
+│   ├── web/                    Next.js web app (app/, lib/api.ts)
+│   └── mobile/                 Expo app (src/app/ = screens, src/lib/api.ts, eas.json)
+├── services/
 │   ├── api/                    Go API
 │   │   ├── cmd/api/            server entrypoint
 │   │   ├── internal/oapi/      generated server interface + models (do not edit)
 │   │   ├── internal/server/    handlers implementing the interface  ← backend code goes here
 │   │   ├── internal/httpx/     request validation, error responses, CORS, /docs
 │   │   └── internal/app/       HTTP wiring + contract tests
-│   ├── web/                    Next.js web app (app/, lib/api.ts)
-│   └── mobile/                 Expo app (src/app/ = screens, src/lib/api.ts, eas.json)
+│   └── sim/                    C++ simulation service (CMake)
 ├── packages/
 │   ├── api-spec/               the OpenAPI contract  ← every API change starts here
 │   ├── api-client/             typed TS client shared by web + mobile
@@ -145,7 +147,7 @@ packages/api-spec/src/**/*.yaml       hand-written contract, split by domain
           │  redocly bundle
           ▼
 packages/api-spec/dist/openapi.yaml   (committed)
-          ├─► apps/api/internal/oapi/oapi.gen.go          Go server interface   → Go API
+          ├─► services/api/internal/oapi/oapi.gen.go      Go server interface   → Go API
           ├─► packages/api-client/src/schema.gen.ts      TS types              → web + mobile
           ├─► Prism mock server on :4010                  build UIs before the backend exists
           └─► oasdiff in CI                               blocks breaking changes
@@ -218,13 +220,15 @@ All from the repo root.
 | `pnpm lint` | Redocly (spec rules) + `go vet` + ESLint (web) + `expo lint` (mobile) |
 | `pnpm typecheck` | TypeScript checks for web, mobile and the API client |
 | `pnpm test` | Go tests, including contract tests that check responses against the spec |
-| `pnpm build` | Go binary, Next.js production build, Expo JS bundles |
+| `pnpm build` | Go binary, Next.js production build, Expo JS bundles and C++ simulator |
+| `pnpm --filter sim build` | Build the C++ simulator with CMake |
+| `pnpm --filter sim test` | Run CTest for the C++ simulator |
 | `pnpm api:breaking` | Would this branch break existing clients? (compares with `origin/main`) |
 | `pnpm api:changelog` | Readable list of every API change vs `origin/main` |
 | `docker compose up --build` | API + web as production containers (needs Docker running) |
 
 Run a script in a single package with `pnpm --filter <name> <script>`. Package names:
-`api`, `web`, `mobile`, `@orbit/api-spec`, `@orbit/api-client`. For example,
+`api`, `web`, `mobile`, `sim`, `@orbit/api-spec`, `@orbit/api-client`. For example,
 `pnpm --filter web dev`.
 
 **Before pushing,** run what CI runs:
@@ -245,7 +249,7 @@ and the breaking-change policy, is in
 1. **Describe the endpoint** in `packages/api-spec/src/`: a path file under
    `paths/<domain>/`, schemas under `components/schemas/<domain>/`, and a reference in
    `src/openapi.yaml`. Then run `pnpm gen` and `pnpm lint`.
-2. **Backend:** implement the new method on `Server` in `apps/api/internal/server/`.
+2. **Backend:** implement the new method on `Server` in `services/api/internal/server/`.
    The Go build fails until you do. Requests are validated against the spec before your
    handler runs, so you don't re-check required fields or lengths.
 3. **Web and mobile:** call it with full types. Until the backend lands, point them at
@@ -258,7 +262,7 @@ and the breaking-change policy, is in
    ```
 
 4. **Commit the generated files** with the spec change:
-   `packages/api-spec/dist/openapi.yaml`, `apps/api/internal/oapi/oapi.gen.go` and
+   `packages/api-spec/dist/openapi.yaml`, `services/api/internal/oapi/oapi.gen.go` and
    `packages/api-client/src/schema.gen.ts`. CI fails if they're out of date.
 
 Calling the API:
@@ -417,7 +421,7 @@ Work is "done" when it is merged into the main branch and covered by tests.
 
 ## Deployment
 
-- **Locally, production-like:** `docker compose up --build` builds `apps/api/Dockerfile`
+- **Locally, production-like:** `docker compose up --build` builds `services/api/Dockerfile`
   and `apps/web/Dockerfile` and runs them together.
 - **API + web:** the same two images run on any container platform. The target is
   Kubernetes, with PostgreSQL and Firebase as backing services.
@@ -471,5 +475,5 @@ one week in 2026 and two weeks in 2027. No capstone coursework runs Jan–Aug 20
 | Port 8080, 3000 or 8081 already in use | Stop the other process, or run that app with a different `PORT`. |
 | Phone can't reach the API | Phone and computer must be on the same Wi-Fi, and your firewall must allow incoming connections on 8080. School and guest networks often block device-to-device traffic; use a hotspot or the simulator instead. |
 | CI fails on "generated code is up to date" | Run `pnpm gen` and commit the changed generated files. |
-| Go build error about a missing method after a spec change | Expected: implement the new operation in `apps/api/internal/server/`. |
+| Go build error about a missing method after a spec change | Expected: implement the new operation in `services/api/internal/server/`. |
 | Weird dependency errors after pulling | Run `pnpm install` again. For mobile, `pnpm --filter mobile doctor` checks Expo versions. |

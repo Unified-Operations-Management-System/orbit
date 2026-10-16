@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 // store is an in-memory todo store. Swap it for Postgres (e.g. with sqlc) later;

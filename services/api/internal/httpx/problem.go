@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Unified-Operations-Management-System/orbit/apps/api/internal/oapi"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 // WriteProblem writes an RFC 9457 problem details response using the Problem

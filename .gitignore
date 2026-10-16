@@ -11,8 +11,8 @@ coverage/
 next-env.d.ts
 
 # Go
-apps/api/bin/
-apps/api/tmp/
+services/api/bin/
+services/api/tmp/
 
 # env
 .env

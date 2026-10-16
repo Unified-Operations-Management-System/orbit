@@ -1,4 +1,4 @@
-# Build context: apps/api
+# Build context: services/api
 FROM golang:1.27 AS build
 WORKDIR /src
 COPY go.mod go.sum ./
