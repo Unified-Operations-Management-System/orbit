@@ -23,3 +23,6 @@ apps/api/tmp/
 # Owais's stuff
 history.txt
 tree.txt
+
+# Local AI assistant settings
+.claude/
