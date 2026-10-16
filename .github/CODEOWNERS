@@ -1,0 +1,30 @@
+# Who must approve changes to each part of the repo.
+# Replace the @your-org/* placeholders with your real GitHub teams.
+# With "Require review from Code Owners" on in branch protection, these become hard gates.
+# The LAST matching pattern wins, so specific paths come after general ones.
+
+# Default: platform team owns tooling and anything not listed below.
+*                                        @your-org/platform
+
+# ── Apps ────────────────────────────────────────────────────────────────────
+/apps/api/                               @your-org/backend
+/apps/web/                               @your-org/web
+/apps/mobile/                            @your-org/mobile
+
+# ── Shared tooling ──────────────────────────────────────────────────────────
+/packages/api-client/                    @your-org/platform
+/packages/tsconfig/                      @your-org/platform
+/turbo.json                              @your-org/platform
+/.github/                                @your-org/platform
+
+# ── API contract ────────────────────────────────────────────────────────────
+# Every contract change needs an API reviewer (a small guild with one person from
+# each team) plus the team that owns that domain.
+/packages/api-spec/                                @your-org/api-reviewers
+/packages/api-spec/src/paths/todos/                @your-org/api-reviewers @your-org/backend
+/packages/api-spec/src/components/schemas/todos/   @your-org/api-reviewers @your-org/backend
+/packages/api-spec/redocly.yaml                    @your-org/api-reviewers @your-org/platform
+
+# Generated from the spec: approved along with the spec change that produced them.
+/packages/api-client/src/schema.gen.ts   @your-org/api-reviewers
+/apps/api/internal/oapi/                 @your-org/api-reviewers

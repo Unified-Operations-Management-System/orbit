@@ -1,8 +1,24 @@
 {
   "name": "orbit",
   "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "generate": "pnpm --filter @orbit/api-client generate && cd services/api && go generate ./..."
+    "dev": "turbo watch dev",
+    "dev:web": "turbo watch dev --filter=web... --filter=api",
+    "dev:mobile": "turbo watch dev --filter=mobile... --filter=api",
+    "mock": "turbo run mock --filter=@orbit/api-spec",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "gen": "turbo run generate",
+    "api:breaking": "pnpm --filter @orbit/api-spec run breaking",
+    "api:changelog": "pnpm --filter @orbit/api-spec run changelog"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.8"
   }
 }
