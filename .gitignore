@@ -1,25 +1,23 @@
-# dependencies
 node_modules/
+.turbo/
+.next/
+out/
+dist/
+# The bundled contract is committed: CI diffs it and oasdiff compares it across branches.
+!packages/api-spec/dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
 
-# env files
+# Go
+apps/api/bin/
+apps/api/tmp/
+
+# env
 .env
-.env.local
-.env*.local
+.env.*
 !.env.example
 
-# build output
-.next/
-dist/
-build/
-services/api/bin/
-
-# turborepo
-.turbo/
-
-# editors / OS
-.vscode/*
-!.vscode/settings.json
-.idea/
 .DS_Store
 
 # Owais's stuff
