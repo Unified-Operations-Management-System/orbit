@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "interactive": true
+    },
+    "build": {
+      "env": ["EXPO_PUBLIC_*"],
+      "outputs": ["dist/**"]
+    }
+  }
+}
