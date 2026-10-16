@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { api } from "@/lib/api";
+import { api } from "@/lib/api/server";
 
 export type FormState = { error?: string };
 

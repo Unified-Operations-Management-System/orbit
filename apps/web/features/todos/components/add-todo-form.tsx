@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { createTodo, type FormState } from "./actions";
+import { createTodo, type FormState } from "../actions";
 
 export function AddTodoForm() {
   const [state, formAction, pending] = useActionState<FormState, FormData>(createTodo, {});

@@ -120,7 +120,7 @@ V&V Champion for their own area (see [the solution table](#the-solution)).
 ```
 orbit/
 ├── apps/
-│   ├── web/                    Next.js web app (app/, lib/api.ts)
+│   ├── web/                    Next.js web app (app/ = routes, features/ = domains; see apps/web/README.md)
 │   └── mobile/                 Expo app (src/app/ = screens, src/lib/api.ts, eas.json)
 ├── services/
 │   ├── api/                    Go API
@@ -268,8 +268,8 @@ and the breaking-change policy, is in
 Calling the API:
 
 ```ts
-// Web: Server Component or Server Action
-import { api } from "@/lib/api";
+// Web: Server Component or Server Action (Client Components use browserApi from @/lib/api/browser)
+import { api } from "@/lib/api/server";
 const { data, error } = await api.PATCH("/todos/{id}", {
   params: { path: { id: 1 } },
   body: { done: true },

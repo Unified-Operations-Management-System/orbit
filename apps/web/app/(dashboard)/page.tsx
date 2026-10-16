@@ -1,15 +1,11 @@
 import { Suspense } from "react";
-import { AddTodoForm } from "./add-todo-form";
-import { HealthBadge } from "./health-badge";
-import { TodoList } from "./todo-list";
+import { AddTodoForm, TodoList } from "@/features/todos";
 
-export default function Home() {
+// Pages only compose features; data fetching and mutations live in features/<domain>/.
+export default function TodosPage() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-16">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Todos</h1>
-        <HealthBadge />
-      </header>
+      <h1 className="text-2xl font-semibold">Todos</h1>
 
       <AddTodoForm />
 

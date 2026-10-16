@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserApi } from "@/lib/api";
+import { browserApi } from "@/lib/api/browser";
 
 // Client Component: calls Go from the browser through the /api rewrite.
 export function HealthBadge() {
