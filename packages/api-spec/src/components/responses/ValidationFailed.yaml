@@ -1,0 +1,12 @@
+description: The request does not match the contract.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/common/Problem.yaml
+    example:
+      title: Unprocessable Entity
+      status: 422
+      detail: validation failed
+      errors:
+        - location: body.title
+          message: must be at least 1 character

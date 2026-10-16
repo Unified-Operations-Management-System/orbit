@@ -1,0 +1,9 @@
+description: The resource does not exist.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/common/Problem.yaml
+    example:
+      title: Not Found
+      status: 404
+      detail: todo not found

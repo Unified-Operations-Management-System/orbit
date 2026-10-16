@@ -1,0 +1,42 @@
+parameters:
+  - $ref: ../../components/parameters/TodoId.yaml
+
+patch:
+  operationId: updateTodo
+  summary: Mark a todo done or not done
+  description: Sets the `done` flag of one todo.
+  tags: [todos]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/todos/UpdateTodoRequest.yaml
+  responses:
+    "200":
+      description: The updated todo.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/todos/Todo.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
+
+delete:
+  operationId: deleteTodo
+  summary: Delete a todo
+  description: Permanently removes one todo.
+  tags: [todos]
+  responses:
+    "204":
+      description: The todo was deleted.
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

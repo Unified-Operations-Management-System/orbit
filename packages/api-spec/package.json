@@ -1,0 +1,16 @@
+{
+  "name": "@orbit/api-spec",
+  "private": true,
+  "description": "The hand-written OpenAPI contract. Source of truth for the Go server and the TS client.",
+  "scripts": {
+    "generate": "redocly bundle main -o dist/openapi.yaml",
+    "lint": "redocly lint",
+    "mock": "prism mock dist/openapi.yaml --host 0.0.0.0 --port 4010",
+    "breaking": "go run github.com/oasdiff/oasdiff@v1.33.0 breaking --fail-on ERR origin/main:packages/api-spec/dist/openapi.yaml dist/openapi.yaml",
+    "changelog": "go run github.com/oasdiff/oasdiff@v1.33.0 changelog origin/main:packages/api-spec/dist/openapi.yaml dist/openapi.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.64.0",
+    "@stoplight/prism-cli": "^5.16.0"
+  }
+}

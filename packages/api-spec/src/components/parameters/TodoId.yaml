@@ -1,0 +1,9 @@
+name: id
+in: path
+required: true
+description: Todo ID.
+schema:
+  type: integer
+  format: int64
+  minimum: 1
+example: 1
