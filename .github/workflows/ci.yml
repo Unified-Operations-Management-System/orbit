@@ -52,7 +52,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: git fetch --depth=1 origin ${{ github.base_ref }}
-      - uses: oasdiff/oasdiff-action/breaking@v0
+      # Nothing to compare against until the base branch has a bundled spec.
+      - id: base
+        run: |
+          if git cat-file -e "origin/${{ github.base_ref }}:packages/api-spec/dist/openapi.yaml" 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No spec on ${{ github.base_ref }} yet; skipping breaking-change check."
+          fi
+      - if: steps.base.outputs.exists == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0
         with:
           base: origin/${{ github.base_ref }}:packages/api-spec/dist/openapi.yaml
           revision: HEAD:packages/api-spec/dist/openapi.yaml
