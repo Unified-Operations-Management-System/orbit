@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# pnpm 11+ blocks dependency build scripts unless allowed here.
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+  "@scarf/scarf": false
+
+minimumReleaseAgeExclude:
+  - "@redocly/cli@2.64.0"

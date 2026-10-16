@@ -1,0 +1,5 @@
+# Pins every toolchain the repo needs. Run `mise install` once after cloning.
+[tools]
+go = "1.27"
+node = "24"
+pnpm = "12.11.2"

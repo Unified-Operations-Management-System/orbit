@@ -1,0 +1,30 @@
+# Lint rules every API change must pass. https://redocly.com/docs/cli/rules
+apis:
+  main:
+    root: src/openapi.yaml
+
+extends:
+  - recommended-strict
+
+rules:
+  # Consistency rules for a multi-team API.
+  operation-operationId: error
+  operation-summary: error
+  operation-description: error
+  operation-tag-defined: error
+  operation-singular-tag: error
+  tag-description: error
+  paths-kebab-case: error
+  no-ambiguous-paths: error
+  no-unused-components: error
+  no-invalid-media-type-examples: error
+  no-invalid-schema-examples: error
+  no-required-schema-properties-undefined: error
+  operation-4xx-problem-details-rfc7807: error
+
+  # Read-only collection endpoints with no inputs have no meaningful 4xx.
+  operation-4xx-response: off
+  # No auth yet. Turn this back on when you add securitySchemes.
+  security-defined: off
+  # Internal API: no license block needed.
+  info-license: off

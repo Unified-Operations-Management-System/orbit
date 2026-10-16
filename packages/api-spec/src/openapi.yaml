@@ -1,0 +1,27 @@
+openapi: 3.1.0
+info:
+  title: Orbit API
+  version: 1.0.0
+  description: |
+    The contract between the Go API, the Next.js web app and the Expo mobile app.
+
+    This file and everything under `src/` is hand-written and is the single source of
+    truth. The Go server interfaces and the TypeScript client are generated from it.
+    See `packages/api-spec/README.md` for how to propose a change.
+servers:
+  # Relative: each client sets its own base URL (web: API_URL, mobile: EXPO_PUBLIC_API_URL).
+  - url: /
+    description: Same host the client is configured to call
+tags:
+  - name: system
+    description: Operational endpoints.
+  - name: todos
+    description: Todo items.
+
+paths:
+  /health:
+    $ref: paths/system/health.yaml
+  /todos:
+    $ref: paths/todos/collection.yaml
+  /todos/{id}:
+    $ref: paths/todos/item.yaml

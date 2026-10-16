@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - uses: pnpm/action-setup@v6 # reads the version from "packageManager"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The spec is the source of truth. Everything generated from it must be committed,
+      # so reviewers see the contract change and the code it produces in one diff.
+      - name: Check generated code is up to date
+        run: |
+          pnpm turbo run generate
+          git diff --exit-code -- \
+            packages/api-spec/dist/openapi.yaml \
+            apps/api/internal/oapi/oapi.gen.go \
+            packages/api-client/src/schema.gen.ts
+
+      # lint includes `redocly lint` on the spec. test includes the Go contract tests,
+      # which check every handler response against the spec. For mobile, build is
+      # `expo export` (iOS, Android and web JS bundles).
+      - run: pnpm turbo run lint typecheck test build
+
+  # Blocks PRs that would break existing clients (including mobile app versions
+  # already installed on phones). To ship an intentional breaking change, get API
+  # reviewer approval and add the `api-breaking-change` label to the PR.
+  api-breaking-changes:
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'api-breaking-change')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: git fetch --depth=1 origin ${{ github.base_ref }}
+      # Nothing to compare against until the base branch has a bundled spec.
+      - id: base
+        run: |
+          if git cat-file -e "origin/${{ github.base_ref }}:packages/api-spec/dist/openapi.yaml" 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No spec on ${{ github.base_ref }} yet; skipping breaking-change check."
+          fi
+      - if: steps.base.outputs.exists == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: origin/${{ github.base_ref }}:packages/api-spec/dist/openapi.yaml
+          revision: HEAD:packages/api-spec/dist/openapi.yaml
+          fail-on: ERR
+          github-token: ${{ github.token }}

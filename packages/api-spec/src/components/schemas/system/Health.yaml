@@ -1,0 +1,8 @@
+title: Health
+type: object
+required: [status]
+properties:
+  status:
+    type: string
+    enum: [ok]
+    description: Always `ok` when the process can serve requests.

@@ -1,0 +1,16 @@
+{
+  "name": "api",
+  "private": true,
+  "description": "Go backend. This package.json only exists so Turborepo can orchestrate Go tasks.",
+  "scripts": {
+    "dev": "go run ./cmd/api",
+    "build": "go build -trimpath -o bin/api ./cmd/api",
+    "generate": "go generate ./internal/oapi",
+    "test": "go test ./...",
+    "lint": "go vet ./...",
+    "start": "./bin/api"
+  },
+  "devDependencies": {
+    "@orbit/api-spec": "workspace:*"
+  }
+}

@@ -1,0 +1,27 @@
+title: Problem
+description: An error, as RFC 9457 problem details, with an optional list of field errors.
+type: object
+required: [title, status]
+properties:
+  type:
+    type: string
+    format: uri-reference
+    default: about:blank
+    description: A URI identifying the problem type.
+  title:
+    type: string
+    description: A short, human-readable summary of the problem type.
+    examples: [Unprocessable Entity]
+  status:
+    type: integer
+    description: The HTTP status code.
+    examples: [422]
+  detail:
+    type: string
+    description: A human-readable explanation of this occurrence.
+    examples: [validation failed]
+  errors:
+    type: array
+    description: Field-level errors, present when request validation fails.
+    items:
+      $ref: FieldError.yaml

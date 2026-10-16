@@ -1,0 +1,27 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "generate": {
+      "inputs": ["internal/oapi/config.yaml", "internal/oapi/generate.go", "$TURBO_ROOT$/packages/api-spec/dist/openapi.yaml"],
+      "outputs": ["internal/oapi/oapi.gen.go"]
+    },
+    "build": {
+      "dependsOn": ["generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum"],
+      "outputs": ["bin/**"]
+    },
+    "test": {
+      "dependsOn": ["generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum"]
+    },
+    "lint": {
+      "dependsOn": ["generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum"]
+    },
+    "dev": {
+      "dependsOn": ["generate"],
+      "interruptible": true
+    }
+  }
+}

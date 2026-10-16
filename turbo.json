@@ -1,0 +1,40 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  "globalPassThroughEnv": [
+    "GOPROXY",
+    "GOPRIVATE",
+    "GONOPROXY",
+    "GONOSUMDB",
+    "GOSUMDB",
+    "GOFLAGS",
+    "GOTOOLCHAIN",
+    "GOPATH",
+    "GOCACHE",
+    "GOMODCACHE",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "SSL_CERT_FILE"
+  ],
+  "tasks": {
+    "generate": {
+      "dependsOn": ["^generate"]
+    },
+    "build": {
+      "dependsOn": ["^build", "^generate"]
+    },
+    "dev": {
+      "dependsOn": ["^generate"],
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^generate", "generate"]
+    },
+    "lint": {
+      "dependsOn": ["^generate"]
+    },
+    "test": {}
+  }
+}
