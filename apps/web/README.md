@@ -28,6 +28,22 @@ apps/web/
 
 `features/todos/` is the reference implementation. Copy its shape when starting a domain.
 
+## Domains
+
+Folders for each functional area already exist (empty ones hold a `.gitkeep`; delete it once
+real files land):
+
+| Domain | Feature code | Routes | Champion |
+|---|---|---|---|
+| Organization and Access | `features/organization/` | `app/(dashboard)/settings/organization/` → `/settings/organization` | Oluwasekunayo Faseyi |
+| HR Management | `features/hr/` | `app/(dashboard)/hr/` → `/hr` | Suthakaran Siva |
+| Inventory and Barcode Tracking | `features/inventory/` | `app/(dashboard)/inventory/` → `/inventory` | William Galvin |
+| Process Configuration and Simulation | `features/production/` | `app/(dashboard)/production/` → `/production` | William Galvin |
+| Cost Analytics and Reporting | `features/analytics/` | `app/(dashboard)/analytics/` → `/analytics` | Muhammad Owais Siddiqui |
+
+A route folder becomes a real URL only once it contains a `page.tsx`, so these placeholders
+don't create empty pages.
+
 ## Rules
 
 1. **Imports flow one way:** `app → features → components / lib`. ESLint enforces this
