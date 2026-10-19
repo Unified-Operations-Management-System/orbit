@@ -278,6 +278,9 @@ importers:
       '@orbit/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@orbit/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       next:
         specifier: 16.4.1
         version: 16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

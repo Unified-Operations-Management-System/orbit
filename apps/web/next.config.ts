@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
 
   // The api-client package ships TypeScript source; let Next compile it.
-  transpilePackages: ["@orbit/api-client"],
+  transpilePackages: ["@orbit/api-client", "@orbit/design-tokens"],
 
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_URL}/:path*` }];
