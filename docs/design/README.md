@@ -136,8 +136,16 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 | `EmptyState`  | ✓   | ✓      | area shape at large size, title, action         |
 | `AreaIcon`    | ✓   | ✓      | `area` → shape + colour (SVG / react-native-svg)|
 | `Dialog`      | ✓   |        | needed for the invite-member prototype          |
-
-Deferred: `DataTable`, mobile `Sheet`, form controls beyond `Input`.
+| `Select`      | ✓   | ✓      | native select (web) / sheet picker (mobile)     |
+| `Textarea`    | ✓   |        | label, hint, error                              |
+| `Checkbox`    | ✓   | ✓      | label (+ description on web)                    |
+| `Tabs` / `Segmented` | ✓ | ✓ | red underline on the active tab, arrow keys (web) |
+| `DataTable`   | ✓   |        | typed columns with `render`, empty row          |
+| `ListRow`     |     | ✓      | title, subtitle, leading, right, optional press |
+| `Sheet`       |     | ✓      | bottom sheet with red top bar, safe-area aware  |
+| `ProgressBar` | ✓   | ✓      | label, value/max, accent colour                 |
+| `BarChart`    | ✓   |        | horizontal bars, accessible labels              |
+| `Toast`       |     | ✓      | info / success / error, polite live region      |
 
 ## App shell
 
