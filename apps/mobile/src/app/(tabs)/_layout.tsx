@@ -30,8 +30,8 @@ function OutlinedTriangle() {
 // Active tab = red bar above the icon; shapes keep their own colours.
 function Icon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
   return (
-    <View style={{ alignItems: "center", gap: 4 }}>
-      <View style={{ width: 24, height: 3, backgroundColor: focused ? colors.red : "transparent" }} />
+    <View style={{ alignItems: "center", justifyContent: "center", width: 28, height: 22 }}>
+      {focused ? <View style={{ position: "absolute", top: -9, width: 24, height: 3, backgroundColor: colors.red }} /> : null}
       {children}
     </View>
   );
@@ -47,8 +47,8 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12 },
-        tabBarStyle: { borderTopColor: colors.ink, borderTopWidth: 2 },
+        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 16 },
+        tabBarStyle: { borderTopColor: colors.ink, borderTopWidth: 2, height: 72, paddingTop: 10, paddingBottom: 10 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ focused }) => <Icon focused={focused}><Shape shape="square" color={colors.ink} size={18} /></Icon> }} />
