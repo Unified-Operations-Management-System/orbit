@@ -3,8 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/jost": "^0.4.2",
     "@expo/ui": "~57.0.24",
     "@orbit/api-client": "workspace:*",
+    "@orbit/design-tokens": "workspace:*",
     "@tanstack/react-query": "^5.104.2",
     "expo": "~57.0.29",
     "expo-build-properties": "~57.0.22",

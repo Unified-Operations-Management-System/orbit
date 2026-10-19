@@ -1,0 +1,17 @@
+{
+  "name": "@orbit/design-tokens",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node scripts/check-contrast.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@orbit/tsconfig": "workspace:*",
+    "@types/node": "^24",
+    "typescript": "^5"
+  }
+}

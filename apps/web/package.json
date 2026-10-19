@@ -10,7 +10,9 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource-variable/jost": "^5.3.0",
     "@orbit/api-client": "workspace:*",
+    "@orbit/design-tokens": "workspace:*",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
