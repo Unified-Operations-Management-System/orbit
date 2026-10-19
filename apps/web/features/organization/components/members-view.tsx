@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { colors } from "@orbit/design-tokens";
-import { Button, Dialog, Input, Shape } from "@/components/ui";
+import { Button, Dialog, Input, Select, Shape } from "@/components/ui";
 import { initialMembers, memberRoles, type Member, type MemberRole, type MemberStatus } from "../mock-data";
 
 const statusStyle: Record<MemberStatus, string> = {
@@ -78,14 +78,7 @@ export function MembersView() {
       <Dialog open={inviting} onClose={() => setInviting(false)} title="Invite member">
         <div className="flex flex-col gap-4">
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} />
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Role</span>
-            <select value={role} onChange={(e) => setRole(e.target.value as MemberRole)} className="h-11 border border-line bg-surface px-3">
-              {memberRoles.filter((r) => r !== "Owner").map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-          </label>
+          <Select label="Role" value={role} onChange={(v) => setRole(v as MemberRole)} options={memberRoles.filter((r) => r !== "Owner").map((r) => ({ value: r, label: r }))} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setInviting(false)}>Cancel</Button>
             <Button onClick={invite}>Send invite</Button>
