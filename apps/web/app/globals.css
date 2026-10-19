@@ -13,7 +13,7 @@
   --color-blue: #1F4FBF;
   --color-yellow: #F4B400;
 
-  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Jost Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { Jost } from "next/font/google";
+import "@fontsource-variable/jost";
 import { RoleProvider } from "@/lib/role";
 import "./globals.css";
-
-const jost = Jost({ subsets: ["latin"], weight: ["400", "500", "700", "800"], variable: "--font-jost" });
 
 export const metadata: Metadata = {
   title: "Orbit",
@@ -12,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${jost.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <RoleProvider>{children}</RoleProvider>
       </body>
