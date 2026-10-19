@@ -347,6 +347,18 @@ importers:
         specifier: ^5.16.0
         version: 5.16.0(supports-color@10.2.2)
 
+  packages/design-tokens:
+    devDependencies:
+      '@orbit/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: ^24
+        version: 24.19.2
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/tsconfig: {}
 
   services/api:
