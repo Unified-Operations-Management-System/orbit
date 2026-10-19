@@ -90,7 +90,7 @@ Each area has one shape and one colour, used in navigation, page headers and emp
 
 ### Typography
 
-Font: **Jost** (open source, Futura-like geometric sans). Web loads it with `next/font/google`;
+Font: **Jost** (open source, Futura-like geometric sans). Web loads it from the self-hosted `@fontsource-variable/jost` package (`next/font/google` fails under this repo's Turbopack config);
 mobile with `@expo-google-fonts/jost`.
 
 | Token     | Size / weight      | Notes                         |
