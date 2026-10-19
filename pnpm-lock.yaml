@@ -175,12 +175,18 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@expo-google-fonts/jost':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/ui':
         specifier: ~57.0.24
         version: 57.0.24(@babel/core@7.29.7(supports-color@10.2.2))(@types/react@19.2.18)(expo@57.0.29)(react-dom@19.2.3(react@19.2.3))(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(react-native@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(react-native@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)
       '@orbit/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@orbit/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       '@tanstack/react-query':
         specifier: ^5.104.2
         version: 5.104.2(react@19.2.3)
@@ -822,6 +828,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@expo-google-fonts/jost@0.4.2':
+    resolution: {integrity: sha512-3iFG70tU53VEt+SRz6ItDUH7S8xBv/m2NNfE3aVRfpZgdLus8HmE1Bjib9iAni/nr0hqT06pfL56ahHjCR6uiw==}
 
   '@expo-google-fonts/material-symbols@0.4.50':
     resolution: {integrity: sha512-XNSgSfd+1p6wqRAzzhrckGngHJQ1/z+oCMdI5FN+x/VnDeMMFGkXsuRNPYcZTYYff1GwVwx4u6Gqnb30aALysw==}
@@ -5977,6 +5986,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@expo-google-fonts/jost@0.4.2': {}
 
   '@expo-google-fonts/material-symbols@0.4.50': {}
 
