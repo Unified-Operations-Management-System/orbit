@@ -1,101 +1,109 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { colors, type AreaShape, type ColorToken } from "@orbit/design-tokens";
+import { Card, PageHeader, Shape, Skeleton } from "@/components/ui";
 import type { CostingStatus, PurchaseOrderStatus } from "../data/cost-capture";
+import { AnalyticsNav } from "./analytics-nav";
 
-// Small building blocks shared by the Cost Analytics screens. They stay inside the feature
-// until a second domain needs them (apps/web/README.md, rule 5).
+// Building blocks shared by the Cost Analytics screens, composed from components/ui so the
+// area matches the design system (docs/design/README.md). They stay inside the feature until
+// a second domain needs them (apps/web/README.md, rule 5).
 
-const badgeStyles = {
-  neutral: "border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-300",
-  amber: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200",
-  green: "border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950 dark:text-green-200",
-  blue: "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-200",
-};
-
-export function Badge({ tone = "neutral", children }: { tone?: keyof typeof badgeStyles; children: React.ReactNode }) {
+/** Shape + label, so a status never relies on colour alone (design rule 5). */
+export function StatusMark({ shape, color, text = "ink", label }: { shape: AreaShape | "check"; color: ColorToken; text?: ColorToken; label: string }) {
   return (
-    <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${badgeStyles[tone]}`}>
-      {children}
+    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-bold">
+      {shape === "check" ? <span aria-hidden>✓</span> : <Shape shape={shape} color={colors[color]} size={10} />}
+      <span style={{ color: colors[text] }}>{label}</span>
     </span>
   );
 }
 
-export function CostingStatusBadge({ status }: { status: CostingStatus }) {
-  return status === "final" ? <Badge tone="green">Final</Badge> : <Badge tone="amber">Provisional</Badge>;
+export function CostingStatusMark({ status }: { status: CostingStatus }) {
+  return status === "final" ? <StatusMark shape="check" color="ink" label="Final" /> : <StatusMark shape="triangle" color="yellow" label="Provisional" />;
 }
 
-export function PurchaseOrderStatusBadge({ status }: { status: PurchaseOrderStatus }) {
-  const tone = { draft: "neutral", open: "blue", closed: "green" } as const;
-  const label = { draft: "Draft", open: "Open", closed: "Closed" };
-  return <Badge tone={tone[status]}>{label[status]}</Badge>;
+export function PurchaseOrderStatusMark({ status }: { status: PurchaseOrderStatus }) {
+  if (status === "open") return <StatusMark shape="circle" color="blue" text="blue" label="Open" />;
+  if (status === "closed") return <StatusMark shape="check" color="ink" label="Closed" />;
+  return <StatusMark shape="square" color="muted" text="muted" label="Draft" />;
 }
 
-export function PageHeader({
+/**
+ * Page frame for every Cost Analytics screen: optional back link, the shared PageHeader,
+ * the area's second-level navigation, then an intro line (status, context) above the content.
+ */
+export function AnalyticsPage({
   title,
+  status,
   description,
   back,
   actions,
+  children,
 }: {
-  title: React.ReactNode;
-  description?: React.ReactNode;
+  title: string;
+  status?: ReactNode;
+  description?: ReactNode;
   back?: { href: string; label: string };
-  actions?: React.ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      {back && (
-        <Link href={back.href} className="text-sm text-neutral-500 hover:text-foreground">
+    <main className="flex flex-col">
+      {back ? (
+        <Link href={back.href} className="text-sm font-bold text-muted hover:text-ink">
           ← {back.label}
         </Link>
-      )}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">{title}</h1>
-          {description && <p className="max-w-2xl text-sm text-neutral-500">{description}</p>}
-        </div>
-        {actions && <div className="flex gap-2">{actions}</div>}
+      ) : null}
+      <PageHeader eyebrow="Cost Analytics" title={title} actions={actions} />
+      <div className="-mt-4 mb-6">
+        <AnalyticsNav />
       </div>
-    </div>
+      {status || description ? (
+        <div className="mb-6 flex max-w-3xl flex-col gap-2">
+          {status ? <div>{status}</div> : null}
+          {description ? <p className="text-muted">{description}</p> : null}
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-6">{children}</div>
+    </main>
   );
 }
 
-export function Card({ title, children, className = "" }: { title?: React.ReactNode; children: React.ReactNode; className?: string }) {
+/** A Card with a section heading. */
+export function Section({ title, accent, children }: { title: string; accent?: ColorToken; children: ReactNode }) {
   return (
-    <section className={`rounded-lg border border-neutral-200 dark:border-neutral-800 ${className}`}>
-      {title && <h2 className="border-b border-neutral-200 px-4 py-3 text-sm font-semibold dark:border-neutral-800">{title}</h2>}
-      <div className="p-4">{children}</div>
+    <section aria-label={title}>
+      <Card accent={accent}>
+        <h2 className="mb-3 text-[22px] font-bold">{title}</h2>
+        {children}
+      </Card>
     </section>
   );
 }
 
-export function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background">
-      {children}
-    </Link>
-  );
-}
-
 /** Says out loud that nothing is saved yet, so a demo viewer isn't misled. */
-export function PrototypeNotice({ children }: { children: React.ReactNode }) {
+export function PrototypeNotice({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-md border border-dashed border-neutral-300 px-3 py-2 text-xs text-neutral-500 dark:border-neutral-700">
-      Prototype: {children}
+    <p className="border-l-[6px] border-line py-1 pl-3 text-sm text-muted">
+      <span className="font-bold uppercase tracking-[0.12em]">Prototype</span> · {children}
     </p>
   );
 }
 
-export const tableClass = "w-full text-left text-sm";
-export const thClass = "border-b border-neutral-200 py-2 pr-4 font-medium text-neutral-500 dark:border-neutral-800";
-export const tdClass = "border-b border-neutral-100 py-2 pr-4 align-top dark:border-neutral-900";
+export const linkClass = "font-bold underline decoration-2 underline-offset-2 hover:text-red";
+export const tableClass = "w-full border-t-2 border-ink text-left";
+export const thClass = "py-2 pr-4 text-xs font-bold uppercase tracking-[0.12em] text-muted";
+export const tdClass = "border-t border-line py-3 pr-4 align-top";
 export const numClass = "text-right tabular-nums";
 
 /** Placeholder shown while a page that depends on the URL streams in. */
 export function PageSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-4" aria-busy="true" aria-label="Loading">
-      <div className="h-8 w-1/3 rounded bg-neutral-200 dark:bg-neutral-800" />
-      <div className="h-4 w-2/3 rounded bg-neutral-200 dark:bg-neutral-800" />
-      <div className="h-48 rounded bg-neutral-100 dark:bg-neutral-900" />
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-10 w-1/3" />
+      <Skeleton className="h-4 w-2/3" />
+      <Skeleton className="h-48" />
     </div>
   );
 }

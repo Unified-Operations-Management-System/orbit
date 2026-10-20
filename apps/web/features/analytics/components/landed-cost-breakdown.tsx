@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { chargeTypeLabels, type AllocationMethod, type Item, type PurchaseOrder, type Shipment } from "../data/cost-capture";
 import { formatMoney, formatPercent, formatQuantity, formatUnitCost } from "../format";
-import { Card, PrototypeNotice, numClass, tableClass, tdClass, thClass } from "./ui";
+import { Button, RadioGroup } from "@/components/ui";
+import { PrototypeNotice, Section, numClass, tableClass, tdClass, thClass } from "./ui";
 
 // Interactive part of W-CA-05 (UC-CA-14 Review Landed Cost Breakdown).
 
@@ -52,27 +53,23 @@ export function LandedCostBreakdown({ shipment, order, items }: { shipment: Ship
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="group" aria-label="Allocation method shown" className="inline-flex rounded-md border border-neutral-300 p-0.5 text-sm dark:border-neutral-700">
-          {(["value", "weight"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={view === m}
-              onClick={() => setView(m)}
-              className={view === m ? "rounded bg-neutral-200 px-3 py-1 font-medium dark:bg-neutral-800" : "px-3 py-1 text-neutral-500"}
-            >
-              By {m}
-              {m === shipment.allocationMethod ? " (applied)" : " (compare)"}
-            </button>
-          ))}
-        </div>
-        <button type="button" onClick={exportCsv} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <RadioGroup
+          inline
+          label="Allocation method shown"
+          value={view}
+          onChange={(v) => setView(v as AllocationMethod)}
+          options={(["value", "weight"] as const).map((m) => ({
+            value: m,
+            label: `By ${m} ${m === shipment.allocationMethod ? "(applied)" : "(compare)"}`,
+          }))}
+        />
+        <Button variant="secondary" onClick={exportCsv}>
           Export CSV
-        </button>
+        </Button>
       </div>
       {view !== shipment.allocationMethod && (
-        <p className="text-sm text-neutral-500">Comparison only: this shipment is costed by {shipment.allocationMethod}. Nothing is changed.</p>
+        <p className="text-sm text-muted">Comparison only: this shipment is costed by {shipment.allocationMethod}. Nothing is changed.</p>
       )}
 
       <table className={tableClass}>
@@ -97,26 +94,26 @@ export function LandedCostBreakdown({ shipment, order, items }: { shipment: Ship
             const charges = (Number(r.total) - Number(r.purchaseValueCad)).toFixed(2);
             const isSelected = r.lineId === selected;
             return (
-              <tr key={r.lineId} className={isSelected ? "bg-neutral-50 dark:bg-neutral-900" : undefined}>
+              <tr key={r.lineId} className={isSelected ? "bg-surface" : undefined}>
                 <td className={tdClass}>
-                  <button type="button" className="text-left font-medium underline" aria-pressed={isSelected} onClick={() => setSelected(r.lineId)}>
+                  <button type="button" className={`text-left font-bold underline decoration-2 underline-offset-2 hover:text-red ${isSelected ? "decoration-red" : ""}`} aria-pressed={isSelected} onClick={() => setSelected(r.lineId)}>
                     {item?.name}
                   </button>
-                  <div className="text-xs text-neutral-500">{item?.unit}</div>
+                  <div className="text-sm text-muted">{item?.unit}</div>
                 </td>
                 <td className={`${tdClass} ${numClass}`}>{formatQuantity(line?.quantityShipped ?? 0)}</td>
                 <td className={`${tdClass} ${numClass}`}>{usable === null ? "—" : formatQuantity(usable)}</td>
                 <td className={`${tdClass} ${numClass}`}>{formatMoney(r.purchaseValueCad)}</td>
                 <td className={`${tdClass} ${numClass}`}>{formatMoney(charges)}</td>
-                <td className={`${tdClass} ${numClass} font-medium`}>{formatMoney(r.total)}</td>
+                <td className={`${tdClass} ${numClass} font-bold`}>{formatMoney(r.total)}</td>
                 <td className={`${tdClass} ${numClass}`}>{formatUnitCost(r.perOrderedUnit)}</td>
-                <td className={`${tdClass} ${numClass} font-semibold`}>
+                <td className={`${tdClass} ${numClass} font-bold`}>
                   {usable === 0 ? (
-                    <span className="text-red-600">No usable stock: full cost is a loss</span>
+                    <span className="text-red">No usable stock: full cost is a loss</span>
                   ) : r.perUsableUnit ? (
                     formatUnitCost(r.perUsableUnit)
                   ) : (
-                    <span className="font-normal text-neutral-500">Awaiting receipt</span>
+                    <span className="font-normal text-muted">Awaiting receipt</span>
                   )}
                 </td>
               </tr>
@@ -126,8 +123,8 @@ export function LandedCostBreakdown({ shipment, order, items }: { shipment: Ship
       </table>
 
       {chosen && (
-        <Card title={`What makes up the landed cost of ${itemFor(chosen.lineId)?.name}`}>
-          <ul className="flex flex-col gap-3 text-sm">
+        <Section accent="red" title={`What makes up the landed cost of ${itemFor(chosen.lineId)?.name}`}>
+          <ul className="flex flex-col gap-4">
             <BreakdownRow
               label="Purchase price"
               amount={chosen.purchaseValueCad}
@@ -153,13 +150,13 @@ export function LandedCostBreakdown({ shipment, order, items }: { shipment: Ship
             if (!receipt || receipt.damaged + receipt.rejected === 0 || !chosen.perUsableUnit) return null;
             const extra = (Number(chosen.perUsableUnit) - Number(chosen.perOrderedUnit)).toFixed(4);
             return (
-              <p className="mt-4 text-sm text-neutral-500">
+              <p className="mt-4 text-sm text-muted">
                 {receipt.damaged + receipt.rejected} unit(s) arrived unusable{receipt.reason ? ` (${receipt.reason.toLowerCase()})` : ""}. Spreading their cost over the
                 usable units adds {formatUnitCost(extra)} to each one (RULE-CA-14, RULE-CA-15).
               </p>
             );
           })()}
-        </Card>
+        </Section>
       )}
 
       <PrototypeNotice>figures for {shipment.reference} are the API&apos;s expected results for this sample shipment (worked example in UC-CA-15).</PrototypeNotice>
@@ -172,15 +169,15 @@ function BreakdownRow({ label, amount, total, source }: { label: string; amount:
   return (
     <li className="flex flex-col gap-1">
       <div className="flex justify-between gap-4">
-        <span className="font-medium">{label}</span>
+        <span className="font-bold">{label}</span>
         <span className="tabular-nums">
-          {formatMoney(amount)} <span className="text-neutral-500">· {formatPercent(amount, total)}</span>
+          {formatMoney(amount)} <span className="text-muted">· {formatPercent(amount, total)}</span>
         </span>
       </div>
-      <div className="h-2 rounded bg-neutral-100 dark:bg-neutral-800" aria-hidden="true">
-        <div className="h-2 rounded bg-neutral-500" style={{ width: `${share}%` }} />
+      <div className="h-3 bg-paper" aria-hidden="true">
+        <div className="h-full bg-ink" style={{ width: `${share}%` }} />
       </div>
-      <span className="text-xs text-neutral-500">{source}</span>
+      <span className="text-sm text-muted">{source}</span>
     </li>
   );
 }

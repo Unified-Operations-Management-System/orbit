@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { ColorToken } from "@orbit/design-tokens";
+import { Alert, Badge, buttonClass, Card, StatCard } from "@/components/ui";
 import { centsToAmount, formatMoney, toCents } from "../format";
 import { getPurchaseOrder, getPurchaseOrders, getShipments } from "../queries";
 import { missingForFinal } from "../status";
-import { Badge, Card, PageHeader, PrimaryLink } from "./ui";
+import { AnalyticsPage, linkClass } from "./ui";
 
 // W-CA-01: landing page of the Cost Analytics and Reporting area (UC-CA-00).
 // Shows every feature of the area so the prototype covers the whole functional area,
@@ -68,88 +70,72 @@ export function AnalyticsOverview() {
     .reduce((sum, line) => sum + (toCents(line.total) ?? 0), 0);
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Cost Analytics and Reporting"
-        description="Follow the money: what materials really cost once they reach the warehouse, what each unit costs to make, and which products and customers are profitable."
-        actions={<PrimaryLink href="/analytics/purchase-orders/new">New purchase order</PrimaryLink>}
-      />
-
+    <AnalyticsPage
+      title="Cost Analytics and Reporting"
+      description="Follow the money: what materials really cost once they reach the warehouse, what each unit costs to make, and which products and customers are profitable."
+      actions={
+        <Link href="/analytics/purchase-orders/new" className={buttonClass()}>
+          New purchase order
+        </Link>
+      }
+    >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Open purchase orders" value={String(openOrders)} href="/analytics/purchase-orders" />
-        <Stat label="Shipments with provisional cost" value={String(provisional.length)} href="/analytics/shipments" />
-        <Stat label="Awaiting goods receipt" value={String(awaitingReceipt.length)} href="/analytics/shipments" />
-        <Stat label="Landed cost finalized (CAD)" value={formatMoney(centsToAmount(finalLandedCents))} href="/analytics/shipments" />
+        <Stat label="Open purchase orders" value={String(openOrders)} href="/analytics/purchase-orders" accent="blue" />
+        <Stat label="Provisional landed cost" value={String(provisional.length)} href="/analytics/shipments" accent="yellow" />
+        <Stat label="Awaiting goods receipt" value={String(awaitingReceipt.length)} href="/analytics/shipments" accent="ink" />
+        <Stat label="Finalized (CAD)" value={formatMoney(centsToAmount(finalLandedCents))} href="/analytics/shipments" accent="red" />
       </div>
 
       {(discrepancies.length > 0 || provisional.length > 0) && (
-        <Card title="Needs attention">
-          <ul className="flex flex-col gap-2 text-sm">
-            {discrepancies.map((s) => (
-              <li key={`d-${s.id}`}>
-                <Link className="underline" href={`/analytics/shipments/${s.id}`}>
-                  {s.reference}
-                </Link>{" "}
-                <span className="text-neutral-500">{s.receipt?.discrepancy}</span>
-              </li>
-            ))}
-            {provisional.map((s) => (
-              <li key={`p-${s.id}`}>
-                <Link className="underline" href={`/analytics/shipments/${s.id}`}>
-                  {s.reference}
-                </Link>{" "}
-                <span className="text-neutral-500">
-                  Landed cost is provisional. Missing: {missingForFinal(s, getPurchaseOrder(s.purchaseOrderId)).join(", ")}.
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <section aria-label="Needs attention" className="flex flex-col gap-3">
+          <h2 className="text-[22px] font-bold">Needs attention</h2>
+          {discrepancies.map((s) => (
+            <Alert key={`d-${s.id}`} tone="warning" title={`${s.reference}: receipt discrepancy`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
+              <span className="text-sm">{s.receipt?.discrepancy}</span>
+            </Alert>
+          ))}
+          {provisional.map((s) => (
+            <Alert key={`p-${s.id}`} tone="info" title={`${s.reference}: landed cost is provisional`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
+              <span className="text-sm">Missing: {missingForFinal(s, getPurchaseOrder(s.purchaseOrderId)).join(", ")}.</span>
+            </Alert>
+          ))}
+        </section>
       )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Features in this area</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <section aria-label="Features in this area" className="flex flex-col gap-3">
+        <h2 className="text-[22px] font-bold">Features in this area</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => {
             const body = (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{f.name}</span>
-                  {f.iteration ? <Badge>Planned · {f.iteration}</Badge> : <Badge tone="green">Available</Badge>}
+              <Card accent={f.href ? "red" : "line"} className="flex h-full flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-bold">{f.name}</span>
+                  {f.iteration ? <Badge>{f.iteration}</Badge> : <Badge tone="danger">Available</Badge>}
                 </div>
-                <p className="text-sm text-neutral-500">{f.description}</p>
-                <span className="text-xs text-neutral-400">{f.useCase}</span>
-              </>
+                <p className="text-sm text-muted">{f.description}</p>
+                <span className="mt-auto text-xs font-bold uppercase tracking-[0.12em] text-muted">{f.useCase}</span>
+              </Card>
             );
             return f.href ? (
-              <Link
-                key={f.name}
-                href={f.href}
-                className="flex flex-col gap-2 rounded-lg border border-neutral-300 p-4 hover:border-foreground dark:border-neutral-700"
-              >
+              <Link key={f.name} href={f.href} className="outline-ink hover:[&>div]:bg-line focus-visible:outline-2 focus-visible:outline-offset-2">
                 {body}
               </Link>
             ) : (
-              <div
-                key={f.name}
-                aria-disabled="true"
-                className="flex flex-col gap-2 rounded-lg border border-dashed border-neutral-200 p-4 opacity-70 dark:border-neutral-800"
-              >
+              <div key={f.name} aria-disabled="true">
                 {body}
               </div>
             );
           })}
         </div>
       </section>
-    </div>
+    </AnalyticsPage>
   );
 }
 
-function Stat({ label, value, href }: { label: string; value: string; href: string }) {
+function Stat({ label, value, href, accent }: { label: string; value: string; href: string; accent: ColorToken }) {
   return (
-    <Link href={href} className="flex flex-col gap-1 rounded-lg border border-neutral-200 p-4 hover:border-foreground dark:border-neutral-800">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span className="text-2xl font-semibold tabular-nums">{value}</span>
+    <Link href={href} className="outline-ink hover:[&>div]:bg-line focus-visible:outline-2 focus-visible:outline-offset-2">
+      <StatCard label={label} value={value} accent={accent} />
     </Link>
   );
 }

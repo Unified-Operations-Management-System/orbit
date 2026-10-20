@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import type { CurrencyCode, Item, Supplier } from "../data/cost-capture";
+import { Alert, Button, DateInput, Input, Select } from "@/components/ui";
 import { centsToAmount, formatMoney, toCents } from "../format";
+import { linkClass } from "./ui";
 
 // W-CA-03: new purchase order (UC-CA-11 Record Purchase Order).
 // Prototype: validation mirrors RULE-CA-03/04 so the flow can be demonstrated, but nothing is
@@ -12,9 +14,12 @@ import { centsToAmount, formatMoney, toCents } from "../format";
 type Line = { key: string; itemId: string; quantity: string; unitPrice: string };
 type Outcome = { kind: "open" | "draft"; number: string } | null;
 
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700 aria-[invalid=true]:border-red-500";
-const labelClass = "flex flex-col gap-1 text-sm";
+const currencyOptions = [
+  { value: "CAD", label: "CAD" },
+  { value: "USD", label: "USD" },
+];
+const termOptions = ["Net 15", "Net 30", "Net 60", "Cash on delivery"].map((t) => ({ value: t, label: t }));
+const labelClass = "text-xs font-bold uppercase tracking-[0.12em] text-muted";
 
 export function PurchaseOrderForm({
   suppliers: initialSuppliers,
@@ -121,28 +126,30 @@ export function PurchaseOrderForm({
 
   if (outcome) {
     return (
-      <div role="status" className="flex flex-col gap-3 rounded-lg border border-green-300 bg-green-50 p-6 text-sm dark:border-green-800 dark:bg-green-950">
-        <p className="text-base font-semibold">
-          {outcome.number} saved as {outcome.kind === "open" ? "Open" : "Draft"}
-        </p>
-        <p>
-          {supplier?.name} · {formatMoney(centsToAmount(totalCents), currency)}
-          {rate && ` · about ${formatMoney(centsToAmount(cadEstimateCents))} at today's provisional rate`}
-        </p>
-        <p className="text-neutral-600 dark:text-neutral-400">
-          Prototype: the order isn&apos;t stored yet. Saving arrives with the purchase order endpoints (SCRUM-61).
-        </p>
-        <div className="flex gap-3">
-          <Link className="underline" href="/analytics/purchase-orders">
+      <div className="flex flex-col gap-4">
+        <Alert tone="success" title={`${outcome.number} saved as ${outcome.kind === "open" ? "Open" : "Draft"}`}>
+          <p>
+            {supplier?.name} · {formatMoney(centsToAmount(totalCents), currency)}
+            {rate && ` · about ${formatMoney(centsToAmount(cadEstimateCents))} at today's provisional rate`}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Prototype: the order isn&apos;t stored yet. Saving arrives with the purchase order endpoints (SCRUM-61).
+          </p>
+        </Alert>
+        <div className="flex gap-6">
+          <Link className={linkClass} href="/analytics/purchase-orders">
             Back to purchase orders
           </Link>
-          <Link className="underline" href="/analytics/purchase-orders/po-1045">
+          <Link className={linkClass} href="/analytics/purchase-orders/po-1045">
             See an open order with a shipment
           </Link>
         </div>
       </div>
     );
   }
+
+  const isQuantityValid = (l: Line) => Number.isInteger(Number(l.quantity)) && Number(l.quantity) > 0;
+  const isPriceValid = (l: Line) => (toCents(l.unitPrice) ?? 0) > 0;
 
   return (
     <form
@@ -158,212 +165,175 @@ export function PurchaseOrderForm({
       </h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass}>
-          <span className="text-neutral-500">Number</span>
-          <input className={inputClass} value={nextNumber} readOnly />
-        </label>
-        <label className={labelClass}>
-          <span className="text-neutral-500">Supplier</span>
-          <select
-            className={inputClass}
-            value={newSupplier ? "__new" : supplierId}
-            aria-invalid={touched && !supplierId}
-            onChange={(e) => chooseSupplier(e.target.value)}
-          >
-            <option value="">Select a supplier…</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.country})
-              </option>
-            ))}
-            <option value="__new">+ New supplier…</option>
-          </select>
-        </label>
+        <Input label="Number" value={nextNumber} readOnly />
+        <Select
+          label="Supplier"
+          placeholder="Select a supplier…"
+          value={newSupplier ? "__new" : supplierId}
+          error={touched && !supplierId ? "Select a supplier." : undefined}
+          hint={supplier ? `Payment terms: ${supplier.paymentTerms}` : undefined}
+          onChange={chooseSupplier}
+          options={[
+            ...suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.country})` })),
+            { value: "__new", label: "+ New supplier…" },
+          ]}
+        />
       </div>
 
       {newSupplier && (
-        <fieldset className="grid gap-3 rounded-lg border border-neutral-200 p-4 sm:grid-cols-4 dark:border-neutral-800">
-          <legend className="px-1 text-sm font-medium">New supplier</legend>
-          <label className={labelClass}>
-            <span className="text-neutral-500">Name</span>
-            <input className={inputClass} value={newSupplier.name} onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })} />
-          </label>
-          <label className={labelClass}>
-            <span className="text-neutral-500">Country</span>
-            <input className={inputClass} value={newSupplier.country} onChange={(e) => setNewSupplier({ ...newSupplier, country: e.target.value })} />
-          </label>
-          <label className={labelClass}>
-            <span className="text-neutral-500">Currency</span>
-            <select
-              className={inputClass}
-              value={newSupplier.currency}
-              onChange={(e) => setNewSupplier({ ...newSupplier, currency: e.target.value as CurrencyCode })}
-            >
-              <option value="CAD">CAD</option>
-              <option value="USD">USD</option>
-            </select>
-          </label>
-          <label className={labelClass}>
-            <span className="text-neutral-500">Payment terms</span>
-            <select className={inputClass} value={newSupplier.terms} onChange={(e) => setNewSupplier({ ...newSupplier, terms: e.target.value })}>
-              <option>Net 15</option>
-              <option>Net 30</option>
-              <option>Net 60</option>
-              <option>Cash on delivery</option>
-            </select>
-          </label>
+        <fieldset className="grid gap-4 border-t-[6px] border-red bg-surface p-4 sm:grid-cols-4">
+          <legend className="sr-only">New supplier</legend>
+          <h3 className="text-[22px] font-bold sm:col-span-4">New supplier</h3>
+          <Input label="Name" value={newSupplier.name} onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })} />
+          <Input label="Country" value={newSupplier.country} onChange={(e) => setNewSupplier({ ...newSupplier, country: e.target.value })} />
+          <Select
+            label="Currency"
+            value={newSupplier.currency}
+            options={currencyOptions}
+            onChange={(v) => setNewSupplier({ ...newSupplier, currency: v as CurrencyCode })}
+          />
+          <Select label="Payment terms" value={newSupplier.terms} options={termOptions} onChange={(v) => setNewSupplier({ ...newSupplier, terms: v })} />
           <div className="flex gap-2 sm:col-span-4">
-            <button type="button" onClick={saveNewSupplier} className="rounded-md border border-neutral-400 px-3 py-1.5 text-sm">
+            <Button type="button" variant="secondary" onClick={saveNewSupplier}>
               Add supplier
-            </button>
-            <button type="button" onClick={() => setNewSupplier(null)} className="px-3 py-1.5 text-sm text-neutral-500">
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setNewSupplier(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </fieldset>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <label className={labelClass}>
-          <span className="text-neutral-500">Currency</span>
-          <select className={inputClass} value={currency} onChange={(e) => setCurrency(e.target.value as CurrencyCode)}>
-            <option value="CAD">CAD</option>
-            <option value="USD">USD</option>
-          </select>
-        </label>
-        <div className={labelClass}>
-          <span className="text-neutral-500">Provisional exchange rate</span>
-          <p className="py-2">{rate ? `1 ${currency} = ${rate} CAD (today)` : "Not needed for CAD"}</p>
+        <Select label="Currency" value={currency} options={currencyOptions} onChange={(v) => setCurrency(v as CurrencyCode)} />
+        <div className="flex flex-col gap-1">
+          <span className={labelClass}>Provisional exchange rate</span>
+          <p className="flex h-11 items-center">{rate ? `1 ${currency} = ${rate} CAD (today)` : "Not needed for CAD"}</p>
         </div>
-        <label className={labelClass}>
-          <span className="text-neutral-500">Expected delivery</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={expected}
-            aria-invalid={touched && !expected}
-            onChange={(e) => setExpected(e.target.value)}
-          />
-        </label>
+        <DateInput
+          label="Expected delivery"
+          value={expected}
+          onChange={setExpected}
+          error={touched && !expected && attempted === "open" ? "Enter the expected delivery date." : undefined}
+        />
       </div>
-      {supplier && <p className="-mt-3 text-xs text-neutral-500">Payment terms: {supplier.paymentTerms}</p>}
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-2 text-sm font-semibold">Lines</legend>
-        {lines.map((line, index) => {
-          const cents = lineCents(line);
-          const invalid = touched && line.itemId !== "" && cents === null;
-          return (
-            <div key={line.key} className="grid items-end gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-              <label className={labelClass}>
-                <span className="text-neutral-500">Item {index + 1}</span>
-                <select className={inputClass} value={line.itemId} onChange={(e) => updateLine(line.key, { itemId: e.target.value })}>
-                  <option value="">Select an item…</option>
-                  {items.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.code} · {i.name} ({i.unit})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={labelClass}>
-                <span className="text-neutral-500">Quantity</span>
-                <input
+        <legend className="mb-3 text-[22px] font-bold">Lines</legend>
+        <div className="flex flex-col border-t-2 border-ink">
+          {lines.map((line, index) => {
+            const cents = lineCents(line);
+            const invalid = touched && line.itemId !== "" && cents === null;
+            return (
+              <div key={line.key} className="grid items-start gap-3 border-b border-line py-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+                <Select
+                  label={`Item ${index + 1}`}
+                  placeholder="Select an item…"
+                  value={line.itemId}
+                  onChange={(v) => updateLine(line.key, { itemId: v })}
+                  options={items.map((i) => ({ value: i.id, label: `${i.code} · ${i.name} (${i.unit})` }))}
+                />
+                <Input
+                  label="Quantity"
                   inputMode="numeric"
-                  className={inputClass}
                   value={line.quantity}
-                  aria-invalid={invalid && !(Number.isInteger(Number(line.quantity)) && Number(line.quantity) > 0)}
+                  error={invalid && !isQuantityValid(line) ? "Whole number above zero" : undefined}
                   onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
                 />
-              </label>
-              <label className={labelClass}>
-                <span className="text-neutral-500">Unit price ({currency})</span>
-                <input
+                <Input
+                  label={`Unit price (${currency})`}
                   inputMode="decimal"
-                  className={inputClass}
                   value={line.unitPrice}
-                  aria-invalid={invalid && !((toCents(line.unitPrice) ?? 0) > 0)}
+                  error={invalid && !isPriceValid(line) ? "Above zero" : undefined}
                   onChange={(e) => updateLine(line.key, { unitPrice: e.target.value })}
                 />
-              </label>
-              <div className="flex flex-col gap-1 text-sm">
-                <span className="text-neutral-500">Line total</span>
-                <span className="py-2 tabular-nums">{cents === null ? "—" : formatMoney(centsToAmount(cents), currency)}</span>
-              </div>
-              <button
-                type="button"
-                aria-label={`Remove line ${index + 1}`}
-                onClick={() => setLines(lines.filter((l) => l.key !== line.key))}
-                className="py-2 text-sm text-neutral-400 hover:text-red-600"
-              >
-                Remove
-              </button>
-              {duplicate?.key === line.key && (
-                <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 sm:col-span-5 dark:bg-amber-950 dark:text-amber-100">
-                  This item is already on line {lines.findIndex((l) => l.key === duplicate.existingKey) + 1}.
-                  <button type="button" className="underline" onClick={() => resolveDuplicate(true)}>
-                    Combine quantities
-                  </button>
-                  <button type="button" className="underline" onClick={() => resolveDuplicate(false)}>
-                    Keep two lines
-                  </button>
+                <div className="flex flex-col gap-1">
+                  <span className={labelClass}>Line total</span>
+                  <span className="flex h-11 items-center tabular-nums">{cents === null ? "—" : formatMoney(centsToAmount(cents), currency)}</span>
                 </div>
-              )}
-            </div>
-          );
-        })}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label={`Remove line ${index + 1}`}
+                  onClick={() => setLines(lines.filter((l) => l.key !== line.key))}
+                  className="sm:mt-5"
+                >
+                  Remove
+                </Button>
+                {duplicate?.key === line.key && (
+                  <div className="sm:col-span-5">
+                    <Alert
+                      tone="warning"
+                      title={`This item is already on line ${lines.findIndex((l) => l.key === duplicate.existingKey) + 1}.`}
+                      action={
+                        <span className="flex gap-2">
+                          <Button type="button" variant="secondary" onClick={() => resolveDuplicate(true)}>
+                            Combine quantities
+                          </Button>
+                          <Button type="button" variant="ghost" onClick={() => resolveDuplicate(false)}>
+                            Keep two lines
+                          </Button>
+                        </span>
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
         <div>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => setLines([...lines, { key: String(Date.now()), itemId: "", quantity: "", unitPrice: "" }])}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700"
           >
             + Add line
-          </button>
-          <p className="mt-2 text-xs text-neutral-500">Can&apos;t find an item? Items are set up in Inventory; save this order as a draft meanwhile.</p>
+          </Button>
+          <p className="mt-2 text-sm text-muted">Can&apos;t find an item? Items are set up in Inventory; save this order as a draft meanwhile.</p>
         </div>
       </fieldset>
 
-      <div className="flex flex-col items-end gap-1 border-t border-neutral-200 pt-4 text-sm dark:border-neutral-800">
-        <span>
-          Total: <strong className="tabular-nums">{formatMoney(centsToAmount(totalCents), currency)}</strong>
+      <div className="flex flex-col items-end gap-1 border-t-2 border-ink pt-4">
+        <span className="text-[22px] font-bold">
+          Total: <span className="tabular-nums">{formatMoney(centsToAmount(totalCents), currency)}</span>
         </span>
         {rate && (
-          <span className="text-neutral-500">
+          <span className="text-sm text-muted">
             About {formatMoney(centsToAmount(cadEstimateCents))} at the provisional rate. Final cost uses the settlement rate.
           </span>
         )}
       </div>
 
       {errors.length > 0 && (
-        <ul role="alert" className="list-disc rounded-md bg-red-50 py-3 pl-8 pr-4 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-          {errors.map((e) => (
-            <li key={e}>{e}</li>
-          ))}
-        </ul>
+        <Alert tone="error" title="Fix these before submitting">
+          <ul className="list-disc pl-5 text-sm">
+            {errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </Alert>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background">
-          Submit purchase order
-        </button>
-        <button type="button" onClick={() => submit("draft")} className="rounded-md border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700">
+        <Button type="submit">Submit purchase order</Button>
+        <Button type="button" variant="secondary" onClick={() => submit("draft")}>
           Save as draft
-        </button>
+        </Button>
         {confirmCancel ? (
-          <span className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-3">
             Discard this purchase order?
-            <Link href="/analytics/purchase-orders" className="text-red-600 underline">
+            <Link href="/analytics/purchase-orders" className={`${linkClass} text-red`}>
               Discard
             </Link>
-            <button type="button" className="underline" onClick={() => setConfirmCancel(false)}>
+            <Button type="button" variant="ghost" onClick={() => setConfirmCancel(false)}>
               Keep editing
-            </button>
+            </Button>
           </span>
         ) : (
-          <button type="button" onClick={() => setConfirmCancel(true)} className="px-2 py-2 text-sm text-neutral-500">
+          <Button type="button" variant="ghost" onClick={() => setConfirmCancel(true)}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>
