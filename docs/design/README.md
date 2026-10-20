@@ -136,9 +136,9 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 | `EmptyState`  | ✓   | ✓      | area shape at large size, title, action         |
 | `AreaIcon`    | ✓   | ✓      | `area` → shape + colour (SVG / react-native-svg)|
 | `Dialog`      | ✓   |        | needed for the invite-member prototype          |
-| `Select`      | ✓   | ✓      | native select (web) / sheet picker (mobile)     |
+| `Select`      | ✓   | ✓      | custom listbox (web) / sheet picker (mobile); never the native control |
 | `Textarea`    | ✓   |        | label, hint, error                              |
-| `Checkbox`    | ✓   | ✓      | label (+ description on web)                    |
+| `Checkbox`    | ✓   | ✓      | custom square box, label (+ description on web) |
 | `Tabs` / `Segmented` | ✓ | ✓ | red underline on the active tab, arrow keys (web) |
 | `DataTable`   | ✓   |        | typed columns with `render`, empty row          |
 | `ListRow`     |     | ✓      | title, subtitle, leading, right, optional press |
@@ -146,6 +146,16 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 | `ProgressBar` | ✓   | ✓      | label, value/max, accent colour                 |
 | `BarChart`    | ✓   |        | horizontal bars, accessible labels              |
 | `Toast`       |     | ✓      | info / success / error, polite live region      |
+| `DateInput`   | ✓   |        | custom calendar + 15-min time list; date, time, datetime |
+| `SearchInput` | ✓   | ✓      | clear button, hidden label                      |
+| `Badge`       | ✓   | ✓      | neutral / info / success / warning / danger     |
+| `Avatar`      | ✓   | ✓      | initials circle                                 |
+| `Alert`       | ✓   | ✓      | left colour bar + status shape                  |
+| `Stepper`     | ✓   | ✓      | production stages (done / current / upcoming)   |
+| `Timeline`    | ✓   | ✓      | audit history, production log                   |
+| `Pagination`  | ✓   |        | previous / next with page count                 |
+| `Skeleton`    | ✓   | ✓      | loading placeholder, respects reduced motion    |
+| `QuantityInput` |   | ✓      | −/+ counter, adjustable for screen readers      |
 
 ## App shell
 
@@ -185,7 +195,7 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 ## Rules for contributors
 
 1. Import colours, type and spacing from tokens only; no raw hex, no ad-hoc font sizes.
-2. Reach for a `ui/` component before writing a new one; if one is missing, add it to `ui/`.
+2. Reach for a `ui/` component before writing a new one; if one is missing, add it to `ui/`. Don't use native `<select>`, checkbox or date inputs directly; use `Select`, `Checkbox` and `DateInput` so every control matches.
 3. Build area screens in `apps/web/features/<domain>/` or `apps/mobile/src/features/<domain>/`.
 4. Yellow is never used as text colour; only pairs in the text-pairs table are used for text.
 5. Every status shows a shape and a label, not colour alone.
