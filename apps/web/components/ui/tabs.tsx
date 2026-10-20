@@ -38,7 +38,7 @@ export function Tabs({
           tabIndex={t.id === value ? 0 : -1}
           onClick={() => onChange(t.id)}
           onKeyDown={onKeyDown}
-          className={`border-b-4 px-0 py-2 text-[15px] font-bold outline-none focus:border-ink ${
+          className={`border-b-4 px-0 py-2 text-[15px] font-bold outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink ${
             t.id === value ? "border-red text-ink" : "border-transparent text-muted"
           }`}
         >

@@ -9,8 +9,10 @@ export function SearchInput({
   placeholder,
   className = "",
   id,
+  showLabel = false,
 }: {
   label?: string;
+  showLabel?: boolean;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -18,7 +20,13 @@ export function SearchInput({
   id?: string;
 }) {
   return (
-    <div className={`relative ${className}`}>
+    <div className={`flex flex-col gap-1 ${className}`}>
+      {showLabel ? (
+        <span aria-hidden className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+          {label}
+        </span>
+      ) : null}
+      <div className="relative">
       <svg
         aria-hidden
         width={16}
@@ -51,6 +59,7 @@ export function SearchInput({
           ×
         </button>
       ) : null}
+      </div>
     </div>
   );
 }

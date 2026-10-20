@@ -42,8 +42,8 @@ export function AuditView() {
   return (
     <section aria-label="Audit history">
       <h2 className="mb-3 text-[22px] font-bold">Audit history</h2>
-      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(1); }} label="Search activity" placeholder="Search activity" />
+      <div className="mb-6 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(1); }} label="Search" showLabel placeholder="Search activity" />
         <Select
           label="Action"
           value={action}
