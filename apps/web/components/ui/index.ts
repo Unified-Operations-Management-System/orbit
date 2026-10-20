@@ -1,5 +1,5 @@
 // components/ui/index.ts
-export { Button } from "./button";
+export { Button, buttonClass } from "./button";
 export { Input } from "./input";
 export { Card } from "./card";
 export { StatCard } from "./stat-card";
@@ -24,3 +24,4 @@ export { Stepper } from "./stepper";
 export { Timeline } from "./timeline";
 export { Pagination } from "./pagination";
 export { Skeleton } from "./skeleton";
+export { RadioGroup } from "./radio-group";

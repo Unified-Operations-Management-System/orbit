@@ -8,15 +8,15 @@ const variants: Record<Variant, string> = {
   ghost: "text-ink hover:bg-surface",
 };
 
+// Exported so a Next.js <Link> can look like a button without nesting interactive elements.
+export function buttonClass(variant: Variant = "primary", className = "") {
+  return `inline-flex h-11 items-center justify-center gap-2 px-5 text-[15px] font-bold disabled:opacity-50 ${variants[variant]} ${className}`;
+}
+
 export function Button({
   variant = "primary",
   className = "",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return (
-    <button
-      className={`inline-flex h-11 items-center justify-center gap-2 px-5 text-[15px] font-bold disabled:opacity-50 ${variants[variant]} ${className}`}
-      {...props}
-    />
-  );
+  return <button className={buttonClass(variant, className)} {...props} />;
 }
