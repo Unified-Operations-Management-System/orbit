@@ -1,12 +1,25 @@
-import { Link, Stack, useTheme } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert as NativeAlert, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { receivableShipments } from "@/features/cost/receiving";
+import { Button, ListRow, PageHeader, SearchInput, Shape, T } from "@/components/ui";
+import { receivableShipments, type ReceivableShipment } from "@/features/cost/receiving";
+import { colors, fonts, minTouch, space } from "@/theme";
+
+// Shape + label so the status never relies on colour alone (design rule 5).
+function ReceiptStatus({ shipment }: { shipment: ReceivableShipment }) {
+  const received = shipment.receipt !== null;
+  return (
+    <View style={styles.status}>
+      <Shape shape={received ? "circle" : "bar"} color={received ? colors.blue : colors.ink} size={10} />
+      <T style={[styles.statusLabel, { color: received ? colors.blue : colors.ink }]}>{received ? "Received" : "To receive"}</T>
+    </View>
+  );
+}
 
 // W-CA-M1: shipments to receive (UC-CA-13 steps 1–3).
 export default function ReceiveShipmentsScreen() {
-  const { colors } = useTheme();
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -15,91 +28,61 @@ export default function ReceiveShipmentsScreen() {
   );
 
   return (
-    <>
-      <Stack.Screen options={{ title: "Receive shipment", headerLargeTitleEnabled: true }} />
+    <SafeAreaView edges={["top"]} style={styles.flex}>
       <FlatList
-        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.body}
         data={shipments}
         keyExtractor={(s) => s.id}
         ListHeaderComponent={
           <View style={styles.header}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search PO number or container"
-              placeholderTextColor="#9ca3af"
-              autoCapitalize="characters"
-              style={[styles.search, { color: colors.text, borderColor: colors.border }]}
-            />
+            <Pressable role="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+              <T style={styles.backLabel}>← Back</T>
+            </Pressable>
+            <PageHeader eyebrow="Cost" title="Receive shipment" />
+            <SearchInput value={query} onChangeText={setQuery} placeholder="Search PO number or container" />
+            <View style={styles.rule} />
           </View>
         }
         renderItem={({ item: s }) => (
-          <Link href={{ pathname: "/receive/[shipmentId]", params: { shipmentId: s.id } }} asChild>
-            <Pressable style={StyleSheet.flatten([styles.row, { borderBottomColor: colors.border }])} role="button">
-              <View style={styles.rowText}>
-                <Text style={[styles.title, { color: colors.text }]}>{s.reference}</Text>
-                <Text style={styles.meta}>
-                  {s.purchaseOrder} · {s.supplier}
-                </Text>
-                <Text style={styles.meta}>
-                  {s.lines.length} lines · expected {s.expectedArrival}
-                </Text>
-              </View>
-              <Text style={[styles.status, s.receipt ? styles.received : { color: colors.primary }]}>
-                {s.receipt ? "Received" : "To receive"}
-              </Text>
-            </Pressable>
-          </Link>
+          <ListRow
+            title={s.reference}
+            subtitle={`${s.purchaseOrder} · ${s.supplier}\n${s.lines.length} lines · expected ${s.expectedArrival}`}
+            right={<ReceiptStatus shipment={s} />}
+            onPress={() => router.push({ pathname: "/receive/[shipmentId]", params: { shipmentId: s.id } })}
+          />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={[styles.meta, styles.center]}>No shipment matches &quot;{query}&quot;.</Text>
+            <T style={{ color: colors.muted }}>No shipment matches &quot;{query}&quot;.</T>
             {/* Extension 3a2: goods arrived that nobody ordered (or the PO isn't in yet). */}
-            <Pressable
-              role="button"
+            <Button
+              variant="secondary"
+              title="Record unexpected delivery"
               onPress={() =>
-                Alert.alert(
+                NativeAlert.alert(
                   "Unexpected delivery recorded",
                   "The bookkeeper has been notified to create or find the purchase order. Nothing is received until then. (Prototype: not sent.)",
                 )
               }
-              style={[styles.outlineButton, { borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.text }}>Record unexpected delivery</Text>
-            </Pressable>
+            />
           </View>
         }
-        ListFooterComponent={<Text style={[styles.meta, styles.footer]}>Prototype: sample shipments, nothing is saved yet.</Text>}
+        ListFooterComponent={<T style={styles.footer}>Prototype: sample shipments, nothing is saved yet.</T>}
       />
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { padding: 16 },
-  search: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  rowText: { flex: 1, gap: 2 },
-  title: { fontSize: 17, fontWeight: "600" },
-  meta: { fontSize: 14, color: "#6b7280" },
-  status: { fontSize: 14, fontWeight: "600" },
-  received: { color: "#16a34a" },
-  empty: { padding: 24, gap: 16, alignItems: "center" },
-  center: { textAlign: "center" },
-  outlineButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
-  footer: { padding: 16, textAlign: "center", fontSize: 12 },
+  flex: { flex: 1, backgroundColor: colors.paper },
+  body: { padding: space[6] },
+  header: { gap: space[3] },
+  back: { minHeight: minTouch, justifyContent: "center", alignSelf: "flex-start" },
+  backLabel: { fontFamily: fonts.bold, color: colors.muted },
+  rule: { height: 2, backgroundColor: colors.ink, marginTop: space[3] },
+  status: { flexDirection: "row", alignItems: "center", gap: space[1] },
+  statusLabel: { fontFamily: fonts.bold, fontSize: 14 },
+  empty: { paddingVertical: space[6], gap: space[4] },
+  footer: { paddingVertical: space[4], color: colors.muted, fontSize: 13 },
 });

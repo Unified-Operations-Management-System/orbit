@@ -1,8 +1,11 @@
-import { Link, Stack, useLocalSearchParams, useTheme } from "expo-router";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState, type ReactNode } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Alert, Button, Card, Checkbox, Input, PageHeader, T } from "@/components/ui";
 import { isDiscrepancy, receivableShipments, type ReceivableLine } from "@/features/cost/receiving";
+import { colors, fonts, minTouch, space } from "@/theme";
 
 // W-CA-M2 (enter quantities) and W-CA-M3 (confirmation) for UC-CA-13 Record Goods Receipt.
 // Prototype: checks mirror RULE-CA-14 and RULE-CA-16 for the demo; the API will own them.
@@ -11,9 +14,27 @@ type Entry = { received: string; damaged: string; rejected: string; reason: stri
 const blank: Entry = { received: "", damaged: "", rejected: "", reason: "", note: "", returned: false, overageOk: false };
 const num = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v) : null);
 
+// The root Stack hides headers, so each screen draws its own back link and title.
+function Screen({ eyebrow, title, back, children }: { eyebrow: string; title: string; back: { label: string; onPress: () => void }; children: ReactNode }) {
+  return (
+    <SafeAreaView edges={["top"]} style={styles.flex}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+          <Pressable role="button" onPress={back.onPress} style={styles.back}>
+            <T style={styles.backLabel}>← {back.label}</T>
+          </Pressable>
+          <PageHeader eyebrow={eyebrow} title={title} />
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const toList = { label: "Shipments", onPress: () => router.back() };
+
 export default function ReceiveShipmentScreen() {
   const { shipmentId } = useLocalSearchParams<{ shipmentId: string }>();
-  const { colors } = useTheme();
   const shipment = receivableShipments.find((s) => s.id === shipmentId);
   const [entries, setEntries] = useState<Record<string, Entry>>({});
   const [confirmed, setConfirmed] = useState(false);
@@ -21,31 +42,29 @@ export default function ReceiveShipmentScreen() {
 
   if (!shipment) {
     return (
-      <View style={styles.padded}>
-        <Stack.Screen options={{ title: "Not found" }} />
-        <Text style={{ color: colors.text }}>That shipment doesn&apos;t exist.</Text>
-      </View>
+      <Screen eyebrow="Receive shipment" title="Not found" back={toList}>
+        <T>That shipment doesn&apos;t exist.</T>
+      </Screen>
     );
   }
 
   // Extension 8b: someone already received it. Show it read-only.
   if (shipment.receipt) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.padded}>
-        <Stack.Screen options={{ title: shipment.reference }} />
-        <Text style={[styles.banner, styles.okBanner]}>Already received on {shipment.receipt.receivedAt}. Only a correction note can be added.</Text>
+      <Screen eyebrow="Receive shipment" title={shipment.reference} back={toList}>
+        <Alert tone="success" title="Already received" message={`Received on ${shipment.receipt.receivedAt}. Only a correction note can be added.`} />
         {shipment.receipt.lines.map((r) => {
           const line = shipment.lines.find((l) => l.id === r.lineId);
           return (
-            <View key={r.lineId} style={[styles.card, { borderColor: colors.border }]}>
-              <Text style={[styles.item, { color: colors.text }]}>{line?.itemName}</Text>
-              <Text style={styles.meta}>
+            <Card key={r.lineId}>
+              <T variant="h2">{line?.itemName}</T>
+              <T style={styles.muted}>
                 {r.received} received · {r.damaged} damaged · {r.rejected} rejected · {r.received - r.damaged - r.rejected} usable
-              </Text>
-            </View>
+              </T>
+            </Card>
           );
         })}
-      </ScrollView>
+      </Screen>
     );
   }
 
@@ -73,178 +92,128 @@ export default function ReceiveShipmentScreen() {
     const flagged = shipment.lines.filter((l) => isDiscrepancy(num(entry(l.id).received) ?? 0, l.quantityShipped));
     const returned = shipment.lines.filter((l) => entry(l.id).returned);
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.padded}>
-        <Stack.Screen options={{ title: "Receipt recorded" }} />
-        <Text style={[styles.banner, styles.okBanner]}>
-          {shipment.reference} received. Landed cost per usable unit has been recalculated (provisional).
-        </Text>
+      <Screen eyebrow="Receive shipment" title="Receipt recorded" back={toList}>
+        <Alert
+          tone="success"
+          title={`${shipment.reference} received`}
+          message="Landed cost per usable unit has been recalculated (provisional)."
+        />
         {shipment.lines.map((l) => {
           const e = entry(l.id);
           const usable = (num(e.received) ?? 0) - (num(e.damaged || "0") ?? 0) - (num(e.rejected || "0") ?? 0);
           return (
-            <View key={l.id} style={[styles.card, { borderColor: colors.border }]}>
-              <Text style={[styles.item, { color: colors.text }]}>{l.itemName}</Text>
-              <Text style={styles.meta}>
+            <Card key={l.id}>
+              <T variant="h2">{l.itemName}</T>
+              <T style={styles.muted}>
                 {e.received} of {l.quantityShipped} received · {usable} usable
-              </Text>
-            </View>
+              </T>
+            </Card>
           );
         })}
         {flagged.length > 0 && (
-          <Text style={[styles.banner, styles.warnBanner]}>
-            Discrepancy on {flagged.map((l) => l.itemName).join(", ")}. The bookkeeper has been notified.
-          </Text>
+          <Alert tone="warning" title="Discrepancy" message={`${flagged.map((l) => l.itemName).join(", ")}. The bookkeeper has been notified.`} />
         )}
         {returned.length > 0 && (
-          <Text style={[styles.banner, styles.warnBanner]}>
-            Returned to supplier: {returned.map((l) => l.itemName).join(", ")}. The bookkeeper will request a supplier credit.
-          </Text>
+          <Alert
+            tone="warning"
+            title="Returned to supplier"
+            message={`${returned.map((l) => l.itemName).join(", ")}. The bookkeeper will request a supplier credit.`}
+          />
         )}
-        <Link href="/receive" style={StyleSheet.flatten([styles.link, { color: colors.primary }])}>
-          Back to shipments
-        </Link>
-        <Text style={[styles.meta, styles.small]}>Prototype: the receipt isn&apos;t saved yet (SCRUM-67, SCRUM-78).</Text>
-      </ScrollView>
+        <Button variant="secondary" title="Back to shipments" onPress={() => router.back()} />
+        <T style={styles.small}>Prototype: the receipt isn&apos;t saved yet (SCRUM-67, SCRUM-78).</T>
+      </Screen>
     );
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Stack.Screen options={{ title: shipment.reference }} />
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={styles.padded}>
-        <Text style={styles.meta}>
-          {shipment.purchaseOrder} · {shipment.supplier}
-        </Text>
-
-        <Pressable
-          role="button"
-          onPress={() =>
-            setEntries(Object.fromEntries(shipment.lines.map((l) => [l.id, { ...entry(l.id), received: String(l.quantityShipped) }])))
-          }
-          style={[styles.outlineButton, { borderColor: colors.border }]}
-        >
-          <Text style={{ color: colors.text, textAlign: "center" }}>All received as shipped</Text>
-        </Pressable>
-
-        {shipment.lines.map((line) => {
-          const e = entry(line.id);
-          const received = num(e.received);
-          const lineProblems = attempted ? problems(line) : [];
-          const discrepancy = received !== null && isDiscrepancy(received, line.quantityShipped);
-          const overage = received !== null && received > line.quantityShipped;
-          return (
-            <View key={line.id} style={[styles.card, { borderColor: lineProblems.length ? "#ef4444" : colors.border }]}>
-              <Text style={[styles.item, { color: colors.text }]}>{line.itemName}</Text>
-              <Text style={styles.meta}>
-                {line.quantityShipped} shipped · {line.unit}
-              </Text>
-
-              <View style={styles.inputs}>
-                <Field label="Received" value={e.received} onChange={(v) => update(line.id, { received: v })} />
-                <Field label="Damaged" value={e.damaged} onChange={(v) => update(line.id, { damaged: v })} />
-                <Field label="Rejected" value={e.rejected} onChange={(v) => update(line.id, { rejected: v })} />
-              </View>
-
-              {(num(e.damaged || "0") || num(e.rejected || "0")) ? (
-                <>
-                  <TextInput
-                    value={e.reason}
-                    onChangeText={(v) => update(line.id, { reason: v })}
-                    placeholder="Reason (e.g. torn bags, leaking)"
-                    placeholderTextColor="#9ca3af"
-                    style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  />
-                  {num(e.rejected || "0") ? (
-                    <View style={styles.switchRow}>
-                      <Text style={{ color: colors.text, flex: 1 }}>Returned to supplier</Text>
-                      <Switch value={e.returned} onValueChange={(v) => update(line.id, { returned: v })} />
-                    </View>
-                  ) : null}
-                </>
-              ) : null}
-
-              {discrepancy && (
-                <>
-                  <Text style={styles.warn}>
-                    {received} vs {line.quantityShipped} shipped: more than 2% off, so the bookkeeper will be notified.
-                  </Text>
-                  <TextInput
-                    value={e.note}
-                    onChangeText={(v) => update(line.id, { note: v })}
-                    placeholder="What happened? (required)"
-                    placeholderTextColor="#9ca3af"
-                    style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  />
-                </>
-              )}
-              {overage && (
-                <View style={styles.switchRow}>
-                  <Text style={{ color: colors.text, flex: 1 }}>More arrived than shipped. Confirm overage</Text>
-                  <Switch value={e.overageOk} onValueChange={(v) => update(line.id, { overageOk: v })} />
-                </View>
-              )}
-              {lineProblems.map((p) => (
-                <Text key={p} style={styles.error}>
-                  {p}
-                </Text>
-              ))}
-            </View>
-          );
-        })}
-
-        <Pressable
-          role="button"
-          onPress={() => {
-            setAttempted(true);
-            if (allProblems.length === 0) setConfirmed(true);
-          }}
-          style={[styles.primary, { backgroundColor: colors.primary }]}
-        >
-          <Text style={styles.primaryLabel}>Confirm receipt</Text>
-        </Pressable>
-        <Text style={[styles.meta, styles.small]}>Prototype: sample shipment. Scanning item labels arrives with Inventory (extension point &quot;identify items&quot;).</Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
-
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType="number-pad"
-        placeholder="0"
-        placeholderTextColor="#9ca3af"
-        aria-label={label}
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+    <Screen eyebrow={`${shipment.purchaseOrder} · ${shipment.supplier}`} title={shipment.reference} back={toList}>
+      <Button
+        variant="secondary"
+        title="All received as shipped"
+        onPress={() => setEntries(Object.fromEntries(shipment.lines.map((l) => [l.id, { ...entry(l.id), received: String(l.quantityShipped) }])))}
       />
-    </View>
+
+      {shipment.lines.map((line) => {
+        const e = entry(line.id);
+        const received = num(e.received);
+        const lineProblems = attempted ? problems(line) : [];
+        const discrepancy = received !== null && isDiscrepancy(received, line.quantityShipped);
+        const overage = received !== null && received > line.quantityShipped;
+        return (
+          <Card key={line.id} accent={lineProblems.length ? "red" : "ink"} style={styles.card}>
+            <View>
+              <T variant="h2">{line.itemName}</T>
+              <T style={styles.muted}>
+                {line.quantityShipped} shipped · {line.unit}
+              </T>
+            </View>
+
+            <View style={styles.inputs}>
+              <View style={styles.field}>
+                <Input label="Received" keyboardType="number-pad" placeholder="0" value={e.received} onChangeText={(v) => update(line.id, { received: v })} />
+              </View>
+              <View style={styles.field}>
+                <Input label="Damaged" keyboardType="number-pad" placeholder="0" value={e.damaged} onChangeText={(v) => update(line.id, { damaged: v })} />
+              </View>
+              <View style={styles.field}>
+                <Input label="Rejected" keyboardType="number-pad" placeholder="0" value={e.rejected} onChangeText={(v) => update(line.id, { rejected: v })} />
+              </View>
+            </View>
+
+            {num(e.damaged || "0") || num(e.rejected || "0") ? (
+              <>
+                <Input label="Reason" placeholder="e.g. torn bags, leaking" value={e.reason} onChangeText={(v) => update(line.id, { reason: v })} />
+                {num(e.rejected || "0") ? (
+                  <Checkbox label="Returned to supplier" checked={e.returned} onChange={(v) => update(line.id, { returned: v })} />
+                ) : null}
+              </>
+            ) : null}
+
+            {discrepancy && (
+              <>
+                <Alert
+                  tone="warning"
+                  title="More than 2% off"
+                  message={`${received} vs ${line.quantityShipped} shipped, so the bookkeeper will be notified.`}
+                />
+                <Input label="What happened? (required)" value={e.note} onChangeText={(v) => update(line.id, { note: v })} />
+              </>
+            )}
+            {overage && (
+              <Checkbox label="More arrived than shipped. Confirm overage" checked={e.overageOk} onChange={(v) => update(line.id, { overageOk: v })} />
+            )}
+            {lineProblems.map((p) => (
+              <T key={p} style={styles.error}>
+                {p}
+              </T>
+            ))}
+          </Card>
+        );
+      })}
+
+      <Button
+        large
+        title="Confirm receipt"
+        onPress={() => {
+          setAttempted(true);
+          if (allProblems.length === 0) setConfirmed(true);
+        }}
+      />
+      <T style={styles.small}>Prototype: sample shipment. Scanning item labels arrives with Inventory (extension point &quot;identify items&quot;).</T>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  padded: { padding: 16, gap: 12 },
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 14, gap: 8 },
-  item: { fontSize: 17, fontWeight: "600" },
-  meta: { fontSize: 14, color: "#6b7280" },
-  small: { fontSize: 12, textAlign: "center" },
-  inputs: { flexDirection: "row", gap: 8 },
-  field: { flex: 1, gap: 4 },
-  label: { fontSize: 13, color: "#6b7280" },
-  input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  switchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  warn: { fontSize: 14, color: "#b45309" },
-  error: { fontSize: 14, color: "#ef4444" },
-  banner: { borderRadius: 10, padding: 12, fontSize: 15, overflow: "hidden" },
-  okBanner: { backgroundColor: "#dcfce7", color: "#166534" },
-  warnBanner: { backgroundColor: "#fef3c7", color: "#92400e" },
-  outlineButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 12 },
-  primary: { borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
-  primaryLabel: { color: "white", fontSize: 17, fontWeight: "600" },
-  link: { fontSize: 16, paddingVertical: 8 },
+  flex: { flex: 1, backgroundColor: colors.paper },
+  body: { padding: space[6], gap: space[3] },
+  back: { minHeight: minTouch, justifyContent: "center", alignSelf: "flex-start" },
+  backLabel: { fontFamily: fonts.bold, color: colors.muted },
+  card: { gap: space[3] },
+  muted: { color: colors.muted },
+  small: { color: colors.muted, fontSize: 13 },
+  inputs: { flexDirection: "row", gap: space[2] },
+  field: { flex: 1 },
+  error: { color: colors.red },
 });
