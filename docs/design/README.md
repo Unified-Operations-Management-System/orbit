@@ -127,7 +127,7 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 
 | Component     | Web | Mobile | Variants / props                                |
 |---------------|-----|--------|-------------------------------------------------|
-| `Button`      | ✓   | ✓      | `primary` (red), `secondary` (ink), `ghost`     |
+| `Button`      | ✓   | ✓      | `primary` (red), `secondary` (ink), `ghost`; web `buttonClass` styles a `Link` |
 | `Input`       | ✓   | ✓      | label, hint, error                              |
 | `Card`        | ✓   | ✓      | `accent` (area or status colour → top bar)      |
 | `StatCard`    | ✓   | ✓      | label, value, accent                            |
@@ -139,6 +139,7 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 | `Select`      | ✓   | ✓      | custom listbox (web) / sheet picker (mobile); never the native control |
 | `Textarea`    | ✓   |        | label, hint, error                              |
 | `Checkbox`    | ✓   | ✓      | custom square box, label (+ description on web) |
+| `RadioGroup`  | ✓   |        | drawn circle over a native radio, inline or stacked |
 | `Tabs` / `Segmented` | ✓ | ✓ | red underline on the active tab, arrow keys (web) |
 | `DataTable`   | ✓   |        | typed columns with `render`, empty row          |
 | `ListRow`     |     | ✓      | title, subtitle, leading, right, optional press |
