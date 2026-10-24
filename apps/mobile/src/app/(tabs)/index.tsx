@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { router } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, Card, StatusPill, T } from "@/components/ui";
+import { Button, Card, ListRow, StatusPill, T } from "@/components/ui";
+import { formatTime } from "@/features/hr/time-attendance";
+import { useTimeClock } from "@/features/hr/time-clock-store";
 import { myTasks, todayShift } from "@/features/home/mock-data";
 import { roleLabels, useRole } from "@/lib/role";
 import { colors, space } from "@/theme";
 
 export default function Home() {
   const { role } = useRole();
-  const [clockedIn, setClockedIn] = useState(false);
+  // HR Time and Attendance (UC-HR-01 step 1): Home opens the Time Clock and shows the punch status.
+  const { openSince } = useTimeClock();
+  const clockedIn = openSince !== null;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.flex}>
@@ -21,8 +25,11 @@ export default function Home() {
           <T variant="h2">{todayShift.time}</T>
           <T style={{ color: colors.muted }}>{todayShift.station}</T>
         </Card>
-        <Button large title={clockedIn ? "Clock out" : "Clock in →"} onPress={() => setClockedIn((v) => !v)} />
-        {clockedIn ? <T style={{ color: colors.muted }}>Clocked in at 7:02 AM</T> : null}
+        <Button large title={clockedIn ? "Clock out →" : "Clock in →"} onPress={() => router.push("/hr/time-clock")} />
+        {clockedIn ? <T style={{ color: colors.muted }}>Clocked in at {formatTime(openSince)}</T> : null}
+        <View style={styles.list}>
+          <ListRow title="My timecard" subtitle="Hours this pay period and corrections" right={<T>→</T>} onPress={() => router.push("/hr/timecard")} />
+        </View>
         <T variant="h2" style={{ marginTop: space[4] }}>My tasks</T>
         <View style={styles.list}>
           {myTasks.map((t) => (
