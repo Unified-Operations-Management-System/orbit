@@ -1,0 +1,56 @@
+get:
+  operationId: listMembers
+  summary: List members
+  description: Returns every member of the caller's company, oldest invitation first.
+  tags: [members]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: All members of the company.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../../components/schemas/members/Member.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
+
+post:
+  operationId: inviteMember
+  summary: Invite a member
+  description: |
+    Adds a Pending member and sends the invitation (UC-OAM-01). Only the owner and HR
+    administrators may invite, nobody can be invited as Owner, and an email can belong to
+    one member only. The invitation expires after 7 days.
+  tags: [members]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/members/InviteMemberRequest.yaml
+  responses:
+    "201":
+      description: The invited member, status Pending.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/members/Member.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

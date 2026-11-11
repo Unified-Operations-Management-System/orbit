@@ -1,0 +1,9 @@
+name: memberId
+in: path
+required: true
+description: Member ID.
+schema:
+  type: string
+  minLength: 1
+  maxLength: 64
+example: m-5

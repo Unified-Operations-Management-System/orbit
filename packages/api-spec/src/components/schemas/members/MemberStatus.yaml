@@ -1,0 +1,5 @@
+title: MemberStatus
+type: string
+enum: [Pending, Active, Deactivated]
+description: Pending until approved; Deactivated members cannot sign in.
+examples: [Pending]

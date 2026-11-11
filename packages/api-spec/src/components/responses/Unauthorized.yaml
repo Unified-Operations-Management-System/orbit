@@ -1,0 +1,9 @@
+description: Not signed in, or the token is invalid.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/common/Problem.yaml
+    example:
+      title: Unauthorized
+      status: 401
+      detail: not signed in

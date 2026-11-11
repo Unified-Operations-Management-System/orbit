@@ -1,0 +1,9 @@
+description: The request conflicts with the current state of the resource.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/common/Problem.yaml
+    example:
+      title: Conflict
+      status: 409
+      detail: a member with this email already exists

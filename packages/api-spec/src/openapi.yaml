@@ -17,6 +17,10 @@ tags:
     description: Operational endpoints.
   - name: todos
     description: Todo items.
+  - name: auth
+    description: Sign-in session (Organization and Access Management).
+  - name: members
+    description: Company membership (Organization and Access Management).
 
 paths:
   /health:
@@ -25,3 +29,21 @@ paths:
     $ref: paths/todos/collection.yaml
   /todos/{id}:
     $ref: paths/todos/item.yaml
+  /auth/session:
+    $ref: paths/auth/session.yaml
+  /members:
+    $ref: paths/members/collection.yaml
+  /members/{memberId}/approve:
+    $ref: paths/members/approve.yaml
+  /members/{memberId}/deactivate:
+    $ref: paths/members/deactivate.yaml
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Session token from sign-in. In development the API accepts `dev:<role>`
+        (owner, supervisor, employee, hr-admin). The production token type is not decided
+        yet (API-issued or Firebase); it plugs in behind the same scheme.

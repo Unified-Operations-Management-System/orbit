@@ -16,6 +16,10 @@ tags:
     description: Operational endpoints.
   - name: todos
     description: Todo items.
+  - name: auth
+    description: Sign-in session (Organization and Access Management).
+  - name: members
+    description: Company membership (Organization and Access Management).
 paths:
   /health:
     get:
@@ -126,7 +130,155 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
         default:
           $ref: '#/components/responses/UnexpectedError'
+  /auth/session:
+    get:
+      operationId: getSession
+      summary: Get the signed-in member
+      description: |
+        Returns the membership of the caller identified by the bearer token. Pending or
+        deactivated members are refused (UC-OAM-08 Sign In).
+      tags:
+        - auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The caller's membership.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /members:
+    get:
+      operationId: listMembers
+      summary: List members
+      description: Returns every member of the caller's company, oldest invitation first.
+      tags:
+        - members
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All members of the company.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    post:
+      operationId: inviteMember
+      summary: Invite a member
+      description: |
+        Adds a Pending member and sends the invitation (UC-OAM-01). Only the owner and HR
+        administrators may invite, nobody can be invited as Owner, and an email can belong to
+        one member only. The invitation expires after 7 days.
+      tags:
+        - members
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteMemberRequest'
+      responses:
+        '201':
+          description: The invited member, status Pending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /members/{memberId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    post:
+      operationId: approveMember
+      summary: Approve a pending member
+      description: Moves a Pending member to Active (UC-OAM-02). Refused with 409 if the invitation has expired or the member is not pending. Only the owner and HR administrators may do this.
+      tags:
+        - members
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The member, status Active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /members/{memberId}/deactivate:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    post:
+      operationId: deactivateMember
+      summary: Deactivate a member
+      description: Ends a member's access immediately (UC-OAM-03). The owner cannot be deactivated (409). Only the owner and HR administrators may do this.
+      tags:
+        - members
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The member, status Deactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Session token from sign-in. In development the API accepts `dev:<role>`
+        (owner, supervisor, employee, hr-admin). The production token type is not decided
+        yet (API-issued or Firebase); it plugs in behind the same scheme.
   schemas:
     FieldError:
       title: FieldError
@@ -243,6 +395,94 @@ components:
         done:
           type: boolean
           description: The new value of the `done` flag.
+    MemberRole:
+      title: MemberRole
+      type: string
+      enum:
+        - Owner
+        - Supervisor
+        - Employee
+        - HR Admin
+      description: What the member may do in Orbit (see the roles matrix).
+      examples:
+        - Employee
+    MemberStatus:
+      title: MemberStatus
+      type: string
+      enum:
+        - Pending
+        - Active
+        - Deactivated
+      description: Pending until approved; Deactivated members cannot sign in.
+      examples:
+        - Pending
+    Member:
+      title: Member
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - status
+        - invitedAt
+        - expiresAt
+      properties:
+        id:
+          type: string
+          description: Member ID.
+          examples:
+            - m-5
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Full name.
+          examples:
+            - Casey Brown
+        email:
+          type: string
+          format: email
+          description: Sign-in email, unique within the company.
+          examples:
+            - casey@example.com
+        role:
+          $ref: '#/components/schemas/MemberRole'
+        status:
+          $ref: '#/components/schemas/MemberStatus'
+        invitedAt:
+          type: string
+          format: date-time
+          description: When the invitation was created (UTC).
+        expiresAt:
+          type: string
+          format: date-time
+          description: When a pending invitation expires (UTC), 7 days after invitedAt.
+    InviteMemberRequest:
+      title: InviteMemberRequest
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Full name of the person being invited.
+          examples:
+            - Casey Brown
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Where the invitation is sent.
+          examples:
+            - casey@example.com
+        role:
+          $ref: '#/components/schemas/MemberRole'
   responses:
     UnexpectedError:
       description: Unexpected error.
@@ -277,6 +517,36 @@ components:
             title: Not Found
             status: 404
             detail: todo not found
+    Unauthorized:
+      description: Not signed in, or the token is invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Unauthorized
+            status: 401
+            detail: not signed in
+    Forbidden:
+      description: Signed in, but your role may not do this.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Forbidden
+            status: 403
+            detail: not allowed for your role
+    Conflict:
+      description: The request conflicts with the current state of the resource.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Conflict
+            status: 409
+            detail: a member with this email already exists
   parameters:
     TodoId:
       name: id
@@ -288,3 +558,13 @@ components:
         format: int64
         minimum: 1
       example: 1
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: Member ID.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: m-5

@@ -1,0 +1,19 @@
+title: InviteMemberRequest
+type: object
+additionalProperties: false
+required: [name, email, role]
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Full name of the person being invited.
+    examples: [Casey Brown]
+  email:
+    type: string
+    format: email
+    maxLength: 254
+    description: Where the invitation is sent.
+    examples: [casey@example.com]
+  role:
+    $ref: MemberRole.yaml

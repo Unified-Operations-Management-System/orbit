@@ -1,0 +1,5 @@
+title: MemberRole
+type: string
+enum: [Owner, Supervisor, Employee, HR Admin]
+description: What the member may do in Orbit (see the roles matrix).
+examples: [Employee]

@@ -1,0 +1,31 @@
+title: Member
+type: object
+required: [id, name, email, role, status, invitedAt, expiresAt]
+properties:
+  id:
+    type: string
+    description: Member ID.
+    examples: [m-5]
+  name:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Full name.
+    examples: [Casey Brown]
+  email:
+    type: string
+    format: email
+    description: Sign-in email, unique within the company.
+    examples: [casey@example.com]
+  role:
+    $ref: MemberRole.yaml
+  status:
+    $ref: MemberStatus.yaml
+  invitedAt:
+    type: string
+    format: date-time
+    description: When the invitation was created (UTC).
+  expiresAt:
+    type: string
+    format: date-time
+    description: When a pending invitation expires (UTC), 7 days after invitedAt.

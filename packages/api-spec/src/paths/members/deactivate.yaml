@@ -1,0 +1,29 @@
+parameters:
+  - $ref: ../../components/parameters/MemberId.yaml
+
+post:
+  operationId: deactivateMember
+  summary: Deactivate a member
+  description: Ends a member's access immediately (UC-OAM-03). The owner cannot be deactivated (409). Only the owner and HR administrators may do this.
+  tags: [members]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The member, status Deactivated.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/members/Member.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

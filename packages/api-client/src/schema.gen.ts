@@ -78,6 +78,105 @@ export interface paths {
         patch: operations["updateTodo"];
         trace?: never;
     };
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the signed-in member
+         * @description Returns the membership of the caller identified by the bearer token. Pending or
+         *     deactivated members are refused (UC-OAM-08 Sign In).
+         */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List members
+         * @description Returns every member of the caller's company, oldest invitation first.
+         */
+        get: operations["listMembers"];
+        put?: never;
+        /**
+         * Invite a member
+         * @description Adds a Pending member and sends the invitation (UC-OAM-01). Only the owner and HR
+         *     administrators may invite, nobody can be invited as Owner, and an email can belong to
+         *     one member only. The invitation expires after 7 days.
+         */
+        post: operations["inviteMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/{memberId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a pending member
+         * @description Moves a Pending member to Active (UC-OAM-02). Refused with 409 if the invitation has expired or the member is not pending. Only the owner and HR administrators may do this.
+         */
+        post: operations["approveMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/{memberId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a member
+         * @description Ends a member's access immediately (UC-OAM-03). The owner cannot be deactivated (409). Only the owner and HR administrators may do this.
+         */
+        post: operations["deactivateMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -166,6 +265,66 @@ export interface components {
             /** @description The new value of the `done` flag. */
             done: boolean;
         };
+        /**
+         * MemberRole
+         * @description What the member may do in Orbit (see the roles matrix).
+         * @example Employee
+         * @enum {string}
+         */
+        MemberRole: "Owner" | "Supervisor" | "Employee" | "HR Admin";
+        /**
+         * MemberStatus
+         * @description Pending until approved; Deactivated members cannot sign in.
+         * @example Pending
+         * @enum {string}
+         */
+        MemberStatus: "Pending" | "Active" | "Deactivated";
+        /** Member */
+        Member: {
+            /**
+             * @description Member ID.
+             * @example m-5
+             */
+            id: string;
+            /**
+             * @description Full name.
+             * @example Casey Brown
+             */
+            name: string;
+            /**
+             * Format: email
+             * @description Sign-in email, unique within the company.
+             * @example casey@example.com
+             */
+            email: string;
+            role: components["schemas"]["MemberRole"];
+            status: components["schemas"]["MemberStatus"];
+            /**
+             * Format: date-time
+             * @description When the invitation was created (UTC).
+             */
+            invitedAt: string;
+            /**
+             * Format: date-time
+             * @description When a pending invitation expires (UTC), 7 days after invitedAt.
+             */
+            expiresAt: string;
+        };
+        /** InviteMemberRequest */
+        InviteMemberRequest: {
+            /**
+             * @description Full name of the person being invited.
+             * @example Casey Brown
+             */
+            name: string;
+            /**
+             * Format: email
+             * @description Where the invitation is sent.
+             * @example casey@example.com
+             */
+            email: string;
+            role: components["schemas"]["MemberRole"];
+        };
     };
     responses: {
         /** @description Unexpected error. */
@@ -222,6 +381,54 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Not signed in, or the token is invalid. */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "title": "Unauthorized",
+                 *       "status": 401,
+                 *       "detail": "not signed in"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Signed in, but your role may not do this. */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "title": "Forbidden",
+                 *       "status": 403,
+                 *       "detail": "not allowed for your role"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The request conflicts with the current state of the resource. */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "title": "Conflict",
+                 *       "status": 409,
+                 *       "detail": "a member with this email already exists"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         /**
@@ -229,6 +436,11 @@ export interface components {
          * @example 1
          */
         TodoId: number;
+        /**
+         * @description Member ID.
+         * @example m-5
+         */
+        MemberId: string;
     };
     requestBodies: never;
     headers: never;
@@ -376,6 +588,144 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's membership. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All members of the company. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    inviteMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description The invited member, status Pending. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    approveMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The member, status Active. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    deactivateMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The member, status Deactivated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             default: components["responses"]["UnexpectedError"];
         };

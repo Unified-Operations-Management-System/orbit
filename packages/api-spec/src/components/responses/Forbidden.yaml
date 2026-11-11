@@ -1,0 +1,9 @@
+description: Signed in, but your role may not do this.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/common/Problem.yaml
+    example:
+      title: Forbidden
+      status: 403
+      detail: not allowed for your role

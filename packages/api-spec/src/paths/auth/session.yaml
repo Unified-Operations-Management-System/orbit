@@ -1,0 +1,20 @@
+get:
+  operationId: getSession
+  summary: Get the signed-in member
+  description: |
+    Returns the membership of the caller identified by the bearer token. Pending or
+    deactivated members are refused (UC-OAM-08 Sign In).
+  tags: [auth]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The caller's membership.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/members/Member.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
