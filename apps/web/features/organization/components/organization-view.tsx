@@ -19,16 +19,18 @@ const tabs = [
 export function OrganizationView() {
   const [tab, setTab] = useState("members");
   return (
-    <main>
+    <main className="flex min-h-0 flex-1 flex-col">
       <PageHeader eyebrow="Organization" title="Members and access" />
       <div className="mb-6">
         <Tabs tabs={tabs} value={tab} onChange={setTab} />
       </div>
-      {tab === "members" ? <MembersView /> : null}
-      {tab === "roles" ? <RolesMatrix /> : null}
-      {tab === "devices" ? <DevicesView /> : null}
-      {tab === "audit" ? <AuditView /> : null}
-      {tab === "company" ? <CompanyView /> : null}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {tab === "members" ? <MembersView /> : null}
+        {tab === "roles" ? <RolesMatrix /> : null}
+        {tab === "devices" ? <DevicesView /> : null}
+        {tab === "audit" ? <AuditView /> : null}
+        {tab === "company" ? <CompanyView /> : null}
+      </div>
     </main>
   );
 }

@@ -14,7 +14,7 @@ export function Sidebar() {
   const items = navItems.filter((i) => role && i.roles.includes(role));
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col bg-ink py-5 text-paper">
+    <aside className="flex w-56 shrink-0 flex-col overflow-y-auto bg-ink py-5 text-paper">
       <div className="flex items-center gap-2.5 px-5 pb-6">
         <OrbitMark onDark />
         <span className="text-xl font-bold">orbit</span>
