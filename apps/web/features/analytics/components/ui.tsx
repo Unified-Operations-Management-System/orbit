@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { colors, type AreaShape, type ColorToken } from "@orbit/design-tokens";
-import { Card, DashboardPage, PageHeader, Shape, Skeleton } from "@/components/ui";
+import { Card, PageHeader, Shape, Skeleton } from "@/components/ui";
 import type { CostingStatus, PurchaseOrderStatus } from "../data/cost-capture";
 import { AnalyticsNav } from "./analytics-nav";
 
@@ -29,6 +29,25 @@ export function PurchaseOrderStatusMark({ status }: { status: PurchaseOrderStatu
   return <StatusMark shape="square" color="muted" text="muted" label="Draft" />;
 }
 
+// TODO(owais): move this frame onto DashboardPage so Cost fits the screen like the other
+// areas (design rule 6, docs/design/README.md: the window never scrolls, only the body or
+// its Panels do). Until then the shell scrolls this page as a fallback. Drop-in change:
+//
+//   import { Card, DashboardPage, PageHeader, Shape, Skeleton } from "@/components/ui";
+//
+//   // add `fill?: boolean` to the props, build the back link, PageHeader, AnalyticsNav and
+//   // status/description into `const header = (<>…</>)`, then return:
+//   return (
+//     <DashboardPage header={header} fill={fill}>
+//       {fill ? children : <div className="flex flex-col gap-6">{children}</div>}
+//     </DashboardPage>
+//   );
+//
+// For the overview, pass `fill`, give the stat grid `shrink-0`, and wrap "Needs attention" and
+// "Features in this area" in `<Panel title="…">` inside
+// `<div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-2">` so each list scrolls
+// on its own.
+
 /**
  * Page frame for every Cost Analytics screen: optional back link, the shared PageHeader,
  * the area's second-level navigation, then an intro line (status, context) above the content.
@@ -39,7 +58,6 @@ export function AnalyticsPage({
   description,
   back,
   actions,
-  fill,
   children,
 }: {
   title: string;
@@ -47,12 +65,10 @@ export function AnalyticsPage({
   description?: ReactNode;
   back?: { href: string; label: string };
   actions?: ReactNode;
-  /** Lay the body out as Panels that scroll on their own (see DashboardPage). */
-  fill?: boolean;
   children: ReactNode;
 }) {
-  const header = (
-    <>
+  return (
+    <main className="flex flex-col">
       {back ? (
         <Link href={back.href} className="text-sm font-bold text-muted hover:text-ink">
           ← {back.label}
@@ -68,12 +84,8 @@ export function AnalyticsPage({
           {description ? <p className="text-muted">{description}</p> : null}
         </div>
       ) : null}
-    </>
-  );
-  return (
-    <DashboardPage header={header} fill={fill}>
-      {fill ? children : <div className="flex flex-col gap-6">{children}</div>}
-    </DashboardPage>
+      <div className="flex flex-col gap-6">{children}</div>
+    </main>
   );
 }
 
