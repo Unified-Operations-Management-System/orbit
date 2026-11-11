@@ -9,18 +9,20 @@ package server
 import (
 	"context"
 
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/app"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
 type Server struct {
-	store *store
+	store   *store
+	members *app.MemberService
 }
 
 // Compile-time check that every operation in the spec is implemented.
 var _ oapi.StrictServerInterface = (*Server)(nil)
 
-func New() *Server {
-	return &Server{store: newStore()}
+func New(members *app.MemberService) *Server {
+	return &Server{store: newStore(), members: members}
 }
 
 func (s *Server) GetHealth(ctx context.Context, _ oapi.GetHealthRequestObject) (oapi.GetHealthResponseObject, error) {

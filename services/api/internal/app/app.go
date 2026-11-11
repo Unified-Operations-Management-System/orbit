@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/httpx"
+	oam "github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/app"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/infra"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/server"
 )
@@ -15,7 +17,15 @@ import (
 // NewHandler returns the full API handler. allowedOrigins is a comma-separated
 // list of browser origins allowed to call the API cross-origin.
 func NewHandler(allowedOrigins string) (http.Handler, error) {
-	strict := oapi.NewStrictHandlerWithOptions(server.New(), nil, oapi.StrictHTTPServerOptions{
+	// Organization and Access Management: in-memory members seeded with the demo
+	// company, and dev:<role> tokens. Postgres and the production authenticator
+	// plug in here behind the same interfaces.
+	clock := oam.SystemClock{}
+	members := infra.NewMemoryMemberRepository(infra.DemoMembers(clock.Now())...)
+	auth := infra.NewDevAuthenticator(members, infra.DemoOrg)
+	memberService := oam.NewMemberService(members, infra.NewLogMailer(slog.Default()), clock, infra.NewIDGenerator())
+
+	strict := oapi.NewStrictHandlerWithOptions(server.New(memberService), nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, http.StatusUnprocessableEntity, err.Error(), nil)
 		},
@@ -45,7 +55,7 @@ func NewHandler(allowedOrigins string) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /openapi.json", httpx.SpecHandler(docsSpec))
 	mux.Handle("GET /docs", httpx.DocsHandler())
-	mux.Handle("/", httpx.RequestValidator(validationSpec)(api))
+	mux.Handle("/", httpx.RequestValidator(validationSpec)(server.Authenticate(auth)(api)))
 
 	return httpx.CORS(allowedOrigins, mux), nil
 }

@@ -24,6 +24,7 @@ type contractClient struct {
 	t       *testing.T
 	handler http.Handler
 	router  routers.Router
+	token   string // sent as a bearer token when set
 }
 
 func newContractClient(t *testing.T) *contractClient {
@@ -53,6 +54,9 @@ func (c *contractClient) do(method, path string, body any) (int, []byte) {
 	req := httptest.NewRequest(method, path, bytes.NewReader(buf))
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
 	rec := httptest.NewRecorder()
 	c.handler.ServeHTTP(rec, req)
@@ -141,6 +145,80 @@ func TestValidationErrorsFollowContract(t *testing.T) {
 				t.Fatalf("want first error at %q, got %s", tc.wantLocation, body)
 			}
 		})
+	}
+}
+
+func TestMembersFollowContract(t *testing.T) {
+	c := newContractClient(t)
+	as := func(token string) *contractClient { c.token = token; return c }
+
+	// Sign in (UC-OAM-08).
+	if code, _ := as("").do(http.MethodGet, "/auth/session", nil); code != http.StatusUnauthorized {
+		t.Fatalf("session without token: %d", code)
+	}
+	if code, _ := as("dev:nobody").do(http.MethodGet, "/auth/session", nil); code != http.StatusUnauthorized {
+		t.Fatalf("session with bad token: %d", code)
+	}
+	code, body := as("dev:owner").do(http.MethodGet, "/auth/session", nil)
+	var me oapi.Member
+	_ = json.Unmarshal(body, &me)
+	if code != http.StatusOK || me.Role != oapi.Owner {
+		t.Fatalf("owner session: %d %s", code, body)
+	}
+
+	// List.
+	code, body = as("dev:employee").do(http.MethodGet, "/members", nil)
+	var list []oapi.Member
+	_ = json.Unmarshal(body, &list)
+	if code != http.StatusOK || len(list) == 0 {
+		t.Fatalf("list: %d %s", code, body)
+	}
+
+	// Invite (UC-OAM-01).
+	invite := map[string]any{"name": "Dana Fox", "email": "dana@example.com", "role": "Employee"}
+	if code, _ := as("dev:supervisor").do(http.MethodPost, "/members", invite); code != http.StatusForbidden {
+		t.Fatalf("supervisor invite: %d", code)
+	}
+	code, body = as("dev:hr-admin").do(http.MethodPost, "/members", invite)
+	var invited oapi.Member
+	_ = json.Unmarshal(body, &invited)
+	if code != http.StatusCreated || invited.Status != oapi.Pending {
+		t.Fatalf("invite: %d %s", code, body)
+	}
+	if code, _ := as("dev:owner").do(http.MethodPost, "/members", invite); code != http.StatusConflict {
+		t.Fatalf("duplicate invite: %d", code)
+	}
+	ownerInvite := map[string]any{"name": "Two Owners", "email": "two@example.com", "role": "Owner"}
+	if code, body := as("dev:owner").do(http.MethodPost, "/members", ownerInvite); code != http.StatusUnprocessableEntity {
+		t.Fatalf("invite as owner: %d %s", code, body)
+	}
+
+	// Approve (UC-OAM-02).
+	if code, _ := as("dev:employee").do(http.MethodPost, "/members/"+invited.Id+"/approve", nil); code != http.StatusForbidden {
+		t.Fatalf("employee approve: %d", code)
+	}
+	code, body = as("dev:owner").do(http.MethodPost, "/members/"+invited.Id+"/approve", nil)
+	var approved oapi.Member
+	_ = json.Unmarshal(body, &approved)
+	if code != http.StatusOK || approved.Status != oapi.Active {
+		t.Fatalf("approve: %d %s", code, body)
+	}
+	if code, _ := as("dev:owner").do(http.MethodPost, "/members/"+invited.Id+"/approve", nil); code != http.StatusConflict {
+		t.Fatalf("approve twice: %d", code)
+	}
+	if code, _ := as("dev:owner").do(http.MethodPost, "/members/m-nope/approve", nil); code != http.StatusNotFound {
+		t.Fatalf("approve missing: %d", code)
+	}
+
+	// Deactivate (UC-OAM-03).
+	if code, _ := as("dev:owner").do(http.MethodPost, "/members/"+me.Id+"/deactivate", nil); code != http.StatusConflict {
+		t.Fatalf("deactivate owner: %d", code)
+	}
+	code, body = as("dev:owner").do(http.MethodPost, "/members/"+invited.Id+"/deactivate", nil)
+	var gone oapi.Member
+	_ = json.Unmarshal(body, &gone)
+	if code != http.StatusOK || gone.Status != oapi.Deactivated {
+		t.Fatalf("deactivate: %d %s", code, body)
 	}
 }
 
