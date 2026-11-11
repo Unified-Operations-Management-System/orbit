@@ -15,6 +15,10 @@ type MemberID string
 // OrgID identifies an organization.
 type OrgID string
 
+// TeamID identifies a team: a group of employees led by a supervisor on a shift
+// or line.
+type TeamID string
+
 // Role is the part a member plays inside an organization.
 type Role string
 
@@ -69,12 +73,15 @@ const InviteTTL = 7 * 24 * time.Hour
 
 // Member is the aggregate for one person's membership in one organization.
 type Member struct {
-	ID        MemberID
-	OrgID     OrgID
-	Name      string
-	Email     Email
-	Role      Role
-	Status    Status
+	ID     MemberID
+	OrgID  OrgID
+	Name   string
+	Email  Email
+	Role   Role
+	Status Status
+	// TeamID is the team the member belongs to; for a supervisor, the team they
+	// lead. Empty means no team.
+	TeamID    TeamID
 	InvitedAt time.Time
 	ExpiresAt time.Time
 }

@@ -19,6 +19,7 @@ type Principal struct {
 	Role     domain.Role
 	Email    domain.Email
 	Name     string
+	TeamID   domain.TeamID
 }
 
 // Authenticator verifies a bearer token (without the "Bearer " prefix) and

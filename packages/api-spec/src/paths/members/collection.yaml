@@ -1,7 +1,10 @@
 get:
   operationId: listMembers
   summary: List members
-  description: Returns every member of the caller's company, oldest invitation first.
+  description: |
+    Returns the members the caller may see, oldest invitation first (BR-OAM-R09): the
+    owner and HR administrators see the whole company, a supervisor sees their own team,
+    an employee sees only themselves.
   tags: [members]
   security:
     - bearerAuth: []

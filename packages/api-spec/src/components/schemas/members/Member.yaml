@@ -21,6 +21,10 @@ properties:
     $ref: MemberRole.yaml
   status:
     $ref: MemberStatus.yaml
+  teamId:
+    type: string
+    description: Team the member belongs to; for a supervisor, the team they lead. Absent when not on a team.
+    examples: [team-line-1]
   invitedAt:
     type: string
     format: date-time

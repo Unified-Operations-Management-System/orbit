@@ -48,7 +48,7 @@ func principalFor(t *testing.T, repo domain.MemberRepository, id domain.MemberID
 	if err != nil {
 		t.Fatalf("loading %s: %v", id, err)
 	}
-	return app.Principal{MemberID: m.ID, OrgID: m.OrgID, Role: m.Role, Email: m.Email, Name: m.Name}
+	return app.Principal{MemberID: m.ID, OrgID: m.OrgID, Role: m.Role, Email: m.Email, Name: m.Name, TeamID: m.TeamID}
 }
 
 func countMembers(t *testing.T, repo domain.MemberRepository) int {
@@ -277,9 +277,9 @@ func TestSession(t *testing.T) {
 func TestListMembers(t *testing.T) {
 	ctx := context.Background()
 	svc, repo, _, _ := fixture(t)
-	employee := principalFor(t, repo, "m-3")
+	owner := principalFor(t, repo, "m-1") // company scope; see TestListMembersScope
 
-	members, err := svc.ListMembers(ctx, employee)
+	members, err := svc.ListMembers(ctx, owner)
 	if err != nil {
 		t.Fatalf("ListMembers: %v", err)
 	}
@@ -290,5 +290,45 @@ func TestListMembers(t *testing.T) {
 		if members[i].ID != want {
 			t.Errorf("members[%d].ID = %q, want %q", i, members[i].ID, want)
 		}
+	}
+}
+
+// BR-OAM-R09: owner and HR admin see the company, a supervisor their own team,
+// an employee only themselves.
+func TestListMembersScope(t *testing.T) {
+	svc, repo, _, _ := fixture(t)
+	noTeamSupervisor := principalFor(t, repo, "m-2")
+	noTeamSupervisor.TeamID = ""
+
+	cases := []struct {
+		name   string
+		caller app.Principal
+		want   []domain.MemberID
+	}{
+		{"owner", principalFor(t, repo, "m-1"), []domain.MemberID{"m-1", "m-2", "m-3", "m-4", "m-5", "m-6"}},
+		{"hr admin", principalFor(t, repo, "m-4"), []domain.MemberID{"m-1", "m-2", "m-3", "m-4", "m-5", "m-6"}},
+		{"supervisor", principalFor(t, repo, "m-2"), []domain.MemberID{"m-2", "m-3", "m-5"}},
+		{"supervisor without team", noTeamSupervisor, []domain.MemberID{"m-2"}},
+		{"employee", principalFor(t, repo, "m-3"), []domain.MemberID{"m-3"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := svc.ListMembers(context.Background(), tc.caller)
+			if err != nil {
+				t.Fatalf("ListMembers: %v", err)
+			}
+			ids := make([]domain.MemberID, len(got))
+			for i, m := range got {
+				ids[i] = m.ID
+			}
+			if len(ids) != len(tc.want) {
+				t.Fatalf("got %v, want %v", ids, tc.want)
+			}
+			for i := range ids {
+				if ids[i] != tc.want[i] {
+					t.Fatalf("got %v, want %v", ids, tc.want)
+				}
+			}
+		})
 	}
 }

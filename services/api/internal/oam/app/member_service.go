@@ -47,12 +47,23 @@ func (s *MemberService) Session(ctx context.Context, p Principal) (domain.Member
 	return m, nil
 }
 
-// ListMembers returns every member of the caller's organization.
+// ListMembers returns the members of the caller's organization that the
+// caller's role may see (BR-OAM-R09).
 func (s *MemberService) ListMembers(ctx context.Context, p Principal) ([]domain.Member, error) {
 	if err := domain.Can(p.Role, domain.ActionListMembers); err != nil {
 		return nil, err
 	}
-	return s.repo.ListByOrg(ctx, p.OrgID)
+	all, err := s.repo.ListByOrg(ctx, p.OrgID)
+	if err != nil {
+		return nil, err
+	}
+	visible := make([]domain.Member, 0, len(all))
+	for _, m := range all {
+		if domain.CanSee(p.Role, p.MemberID, p.TeamID, m) {
+			visible = append(visible, m)
+		}
+	}
+	return visible, nil
 }
 
 // InviteMember invites a new member to the caller's organization. The member is

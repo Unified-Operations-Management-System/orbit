@@ -54,6 +54,7 @@ func (a *DevAuthenticator) Authenticate(ctx context.Context, token string) (app.
 				Role:     m.Role,
 				Email:    m.Email,
 				Name:     m.Name,
+				TeamID:   m.TeamID,
 			}, nil
 		}
 	}

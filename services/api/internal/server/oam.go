@@ -116,7 +116,13 @@ func (s *Server) DeactivateMember(ctx context.Context, req oapi.DeactivateMember
 }
 
 func toMember(m domain.Member) oapi.Member {
+	var team *string
+	if m.TeamID != "" {
+		t := string(m.TeamID)
+		team = &t
+	}
 	return oapi.Member{
+		TeamId:    team,
 		Id:        string(m.ID),
 		Name:      m.Name,
 		Email:     openapi_types.Email(m.Email),

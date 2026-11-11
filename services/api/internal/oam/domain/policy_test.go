@@ -61,3 +61,48 @@ func TestCan(t *testing.T) {
 		t.Errorf("unknown action: got %v, want ErrForbidden", err)
 	}
 }
+
+func TestCanSee(t *testing.T) {
+	const team domain.TeamID = "team-a"
+	self := domain.Member{ID: "me", TeamID: team}
+	teammate := domain.Member{ID: "mate", TeamID: team}
+	other := domain.Member{ID: "other", TeamID: "team-b"}
+	noTeam := domain.Member{ID: "loner"}
+
+	cases := []struct {
+		role       domain.Role
+		viewerTeam domain.TeamID
+		m          domain.Member
+		want       bool
+	}{
+		{domain.RoleOwner, "", other, true},
+		{domain.RoleHRAdmin, "", noTeam, true},
+		{domain.RoleSupervisor, team, self, true},
+		{domain.RoleSupervisor, team, teammate, true},
+		{domain.RoleSupervisor, team, other, false},
+		{domain.RoleSupervisor, team, noTeam, false},
+		{domain.RoleSupervisor, "", noTeam, false},
+		{domain.RoleSupervisor, "", self, true},
+		{domain.RoleEmployee, team, self, true},
+		{domain.RoleEmployee, team, teammate, false},
+	}
+	for _, tc := range cases {
+		if got := domain.CanSee(tc.role, "me", tc.viewerTeam, tc.m); got != tc.want {
+			t.Errorf("CanSee(%s, team %q, %s) = %v, want %v", tc.role, tc.viewerTeam, tc.m.ID, got, tc.want)
+		}
+	}
+}
+
+func TestScopeOf(t *testing.T) {
+	want := map[domain.Role]domain.Scope{
+		domain.RoleOwner:      domain.ScopeCompany,
+		domain.RoleHRAdmin:    domain.ScopeCompany,
+		domain.RoleSupervisor: domain.ScopeTeam,
+		domain.RoleEmployee:   domain.ScopeSelf,
+	}
+	for role, scope := range want {
+		if got := domain.ScopeOf(role); got != scope {
+			t.Errorf("ScopeOf(%s) = %s, want %s", role, got, scope)
+		}
+	}
+}

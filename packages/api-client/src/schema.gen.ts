@@ -108,7 +108,9 @@ export interface paths {
         };
         /**
          * List members
-         * @description Returns every member of the caller's company, oldest invitation first.
+         * @description Returns the members the caller may see, oldest invitation first (BR-OAM-R09): the
+         *     owner and HR administrators see the whole company, a supervisor sees their own team,
+         *     an employee sees only themselves.
          */
         get: operations["listMembers"];
         put?: never;
@@ -299,6 +301,11 @@ export interface components {
             email: string;
             role: components["schemas"]["MemberRole"];
             status: components["schemas"]["MemberStatus"];
+            /**
+             * @description Team the member belongs to; for a supervisor, the team they lead. Absent when not on a team.
+             * @example team-line-1
+             */
+            teamId?: string;
             /**
              * Format: date-time
              * @description When the invitation was created (UTC).

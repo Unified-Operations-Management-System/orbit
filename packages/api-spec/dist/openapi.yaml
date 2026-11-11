@@ -156,7 +156,10 @@ paths:
     get:
       operationId: listMembers
       summary: List members
-      description: Returns every member of the caller's company, oldest invitation first.
+      description: |
+        Returns the members the caller may see, oldest invitation first (BR-OAM-R09): the
+        owner and HR administrators see the whole company, a supervisor sees their own team,
+        an employee sees only themselves.
       tags:
         - members
       security:
@@ -450,6 +453,11 @@ components:
           $ref: '#/components/schemas/MemberRole'
         status:
           $ref: '#/components/schemas/MemberStatus'
+        teamId:
+          type: string
+          description: Team the member belongs to; for a supervisor, the team they lead. Absent when not on a team.
+          examples:
+            - team-line-1
         invitedAt:
           type: string
           format: date-time

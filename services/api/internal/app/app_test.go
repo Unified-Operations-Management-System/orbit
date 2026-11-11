@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -166,12 +167,29 @@ func TestMembersFollowContract(t *testing.T) {
 		t.Fatalf("owner session: %d %s", code, body)
 	}
 
-	// List.
-	code, body = as("dev:employee").do(http.MethodGet, "/members", nil)
-	var list []oapi.Member
-	_ = json.Unmarshal(body, &list)
-	if code != http.StatusOK || len(list) == 0 {
-		t.Fatalf("list: %d %s", code, body)
+	// List, scoped by role (BR-OAM-R09).
+	listAs := func(token string) []string {
+		t.Helper()
+		code, body := as(token).do(http.MethodGet, "/members", nil)
+		var list []oapi.Member
+		_ = json.Unmarshal(body, &list)
+		if code != http.StatusOK {
+			t.Fatalf("list as %s: %d %s", token, code, body)
+		}
+		ids := make([]string, len(list))
+		for i, m := range list {
+			ids[i] = m.Id
+		}
+		return ids
+	}
+	if ids := listAs("dev:owner"); len(ids) != 6 {
+		t.Fatalf("owner sees %v, want all 6", ids)
+	}
+	if ids := listAs("dev:supervisor"); strings.Join(ids, ",") != "m-2,m-3,m-5" {
+		t.Fatalf("supervisor sees %v, want own team m-2,m-3,m-5", ids)
+	}
+	if ids := listAs("dev:employee"); strings.Join(ids, ",") != "m-3" {
+		t.Fatalf("employee sees %v, want only m-3", ids)
 	}
 
 	// Invite (UC-OAM-01).
