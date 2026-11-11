@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { colors, type AreaShape, type ColorToken } from "@orbit/design-tokens";
-import { Card, PageHeader, Shape, Skeleton } from "@/components/ui";
+import { Card, DashboardPage, PageHeader, Shape, Skeleton } from "@/components/ui";
 import type { CostingStatus, PurchaseOrderStatus } from "../data/cost-capture";
 import { AnalyticsNav } from "./analytics-nav";
 
@@ -39,6 +39,7 @@ export function AnalyticsPage({
   description,
   back,
   actions,
+  fill,
   children,
 }: {
   title: string;
@@ -46,10 +47,12 @@ export function AnalyticsPage({
   description?: ReactNode;
   back?: { href: string; label: string };
   actions?: ReactNode;
+  /** Lay the body out as Panels that scroll on their own (see DashboardPage). */
+  fill?: boolean;
   children: ReactNode;
 }) {
-  return (
-    <main className="flex flex-col">
+  const header = (
+    <>
       {back ? (
         <Link href={back.href} className="text-sm font-bold text-muted hover:text-ink">
           ← {back.label}
@@ -65,8 +68,12 @@ export function AnalyticsPage({
           {description ? <p className="text-muted">{description}</p> : null}
         </div>
       ) : null}
-      <div className="flex flex-col gap-6">{children}</div>
-    </main>
+    </>
+  );
+  return (
+    <DashboardPage header={header} fill={fill}>
+      {fill ? children : <div className="flex flex-col gap-6">{children}</div>}
+    </DashboardPage>
   );
 }
 

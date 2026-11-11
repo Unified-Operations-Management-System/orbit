@@ -6,6 +6,7 @@ export { StatCard } from "./stat-card";
 export { StatusPill } from "./status-pill";
 export { AreaIcon, Shape } from "./area-icon";
 export { PageHeader } from "./page-header";
+export { DashboardPage, Panel } from "./dashboard-page";
 export { EmptyState } from "./empty-state";
 export { Dialog } from "./dialog";
 export { Select } from "./select";

@@ -200,6 +200,11 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
 3. Build area screens in `apps/web/features/<domain>/` or `apps/mobile/src/features/<domain>/`.
 4. Yellow is never used as text colour; only pairs in the text-pairs table are used for text.
 5. Every status shows a shape and a label, not colour alone.
+6. **The web app is a dashboard: the page never scrolls.** Every signed-in screen renders inside
+   `DashboardPage`, which keeps the header (title, actions, tabs) fixed and gives the rest of the
+   screen to the body. Only inner sections scroll: the body as one block by default, or, with
+   `fill`, each `Panel` on its own. Design screens to fit a laptop screen (1280×720) first; long
+   lists and forms scroll inside their panel, never the window. Below `lg` the body scrolls.
 
 ## Verification
 

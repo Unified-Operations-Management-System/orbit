@@ -60,6 +60,9 @@ don't create empty pages.
    `import "server-only"` fails the build if a Client Component pulls it in.
 7. **Business rules live in the Go API.** `queries.ts` and `actions.ts` call the typed client
    and map errors to UI. Hiding a button by role is UX only; the API enforces permissions.
+8. **Every page is a `DashboardPage`; the window never scrolls.** Put the title and tabs in its
+   `header`; long content scrolls inside the body or inside `Panel`s (`fill`). See design rule 6
+   in `docs/design/README.md`.
 
 ## Adding a domain
 

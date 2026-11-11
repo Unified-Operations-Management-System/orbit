@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ColorToken } from "@orbit/design-tokens";
-import { Alert, Badge, buttonClass, Card, StatCard } from "@/components/ui";
+import { Alert, Badge, buttonClass, Card, Panel, StatCard } from "@/components/ui";
 import { centsToAmount, formatMoney, toCents } from "../format";
 import { getPurchaseOrder, getPurchaseOrders, getShipments } from "../queries";
 import { missingForFinal } from "../status";
@@ -71,6 +71,7 @@ export function AnalyticsOverview() {
 
   return (
     <AnalyticsPage
+      fill
       title="Cost Analytics and Reporting"
       description="Follow the money: what materials really cost once they reach the warehouse, what each unit costs to make, and which products and customers are profitable."
       actions={
@@ -79,55 +80,60 @@ export function AnalyticsOverview() {
         </Link>
       }
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Open purchase orders" value={String(openOrders)} href="/analytics/purchase-orders" accent="blue" />
         <Stat label="Provisional landed cost" value={String(provisional.length)} href="/analytics/shipments" accent="yellow" />
         <Stat label="Awaiting goods receipt" value={String(awaitingReceipt.length)} href="/analytics/shipments" accent="ink" />
         <Stat label="Finalized (CAD)" value={formatMoney(centsToAmount(finalLandedCents))} href="/analytics/shipments" accent="red" />
       </div>
 
-      {(discrepancies.length > 0 || provisional.length > 0) && (
-        <section aria-label="Needs attention" className="flex flex-col gap-3">
-          <h2 className="text-[22px] font-bold">Needs attention</h2>
-          {discrepancies.map((s) => (
-            <Alert key={`d-${s.id}`} tone="warning" title={`${s.reference}: receipt discrepancy`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
-              <span className="text-sm">{s.receipt?.discrepancy}</span>
-            </Alert>
-          ))}
-          {provisional.map((s) => (
-            <Alert key={`p-${s.id}`} tone="info" title={`${s.reference}: landed cost is provisional`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
-              <span className="text-sm">Missing: {missingForFinal(s, getPurchaseOrder(s.purchaseOrderId)).join(", ")}.</span>
-            </Alert>
-          ))}
-        </section>
-      )}
+      {/* Dashboard layout: the two lists sit side by side and scroll inside their panels. */}
+      <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
+        <Panel title="Needs attention">
+          {discrepancies.length > 0 || provisional.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {discrepancies.map((s) => (
+                <Alert key={`d-${s.id}`} tone="warning" title={`${s.reference}: receipt discrepancy`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
+                  <span className="text-sm">{s.receipt?.discrepancy}</span>
+                </Alert>
+              ))}
+              {provisional.map((s) => (
+                <Alert key={`p-${s.id}`} tone="info" title={`${s.reference}: landed cost is provisional`} action={<Link className={linkClass} href={`/analytics/shipments/${s.id}`}>Open shipment</Link>}>
+                  <span className="text-sm">Missing: {missingForFinal(s, getPurchaseOrder(s.purchaseOrderId)).join(", ")}.</span>
+                </Alert>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted">Nothing needs attention.</p>
+          )}
+        </Panel>
 
-      <section aria-label="Features in this area" className="flex flex-col gap-3">
-        <h2 className="text-[22px] font-bold">Features in this area</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => {
-            const body = (
-              <Card accent={f.href ? "red" : "line"} className="flex h-full flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-bold">{f.name}</span>
-                  {f.iteration ? <Badge>{f.iteration}</Badge> : <Badge tone="danger">Available</Badge>}
+        <Panel title="Features in this area">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {features.map((f) => {
+              const body = (
+                <Card accent={f.href ? "red" : "line"} className="flex h-full flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold">{f.name}</span>
+                    {f.iteration ? <Badge>{f.iteration}</Badge> : <Badge tone="danger">Available</Badge>}
+                  </div>
+                  <p className="text-sm text-muted">{f.description}</p>
+                  <span className="mt-auto text-xs font-bold uppercase tracking-[0.12em] text-muted">{f.useCase}</span>
+                </Card>
+              );
+              return f.href ? (
+                <Link key={f.name} href={f.href} className="outline-ink hover:[&>div]:bg-line focus-visible:outline-2 focus-visible:outline-offset-2">
+                  {body}
+                </Link>
+              ) : (
+                <div key={f.name} aria-disabled="true">
+                  {body}
                 </div>
-                <p className="text-sm text-muted">{f.description}</p>
-                <span className="mt-auto text-xs font-bold uppercase tracking-[0.12em] text-muted">{f.useCase}</span>
-              </Card>
-            );
-            return f.href ? (
-              <Link key={f.name} href={f.href} className="outline-ink hover:[&>div]:bg-line focus-visible:outline-2 focus-visible:outline-offset-2">
-                {body}
-              </Link>
-            ) : (
-              <div key={f.name} aria-disabled="true">
-                {body}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </Panel>
+      </div>
     </AnalyticsPage>
   );
 }
