@@ -7,6 +7,9 @@ export type { components, paths };
 export type Todo = components["schemas"]["Todo"];
 export type Problem = components["schemas"]["Problem"];
 export type FieldError = components["schemas"]["FieldError"];
+export type Member = components["schemas"]["Member"];
+export type MemberRole = components["schemas"]["MemberRole"];
+export type MemberStatus = components["schemas"]["MemberStatus"];
 
 /**
  * Typed client for the Go API. Paths, params, bodies and responses are all

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colors } from "@orbit/design-tokens";
+import type { Problem } from "@orbit/api-client";
 import { Alert, Button, Dialog, Input, Select, Shape } from "@/components/ui";
-import { initialMembers, memberRoles, type Member, type MemberRole, type MemberStatus } from "../mock-data";
+import { browserApi } from "@/lib/api/browser";
+import { authHeaders, useRole } from "@/lib/role";
+import { memberRoles, type Member, type MemberRole, type MemberStatus } from "../mock-data";
 import { ChangeRoleDialog } from "./change-role-dialog";
 import { DeactivateDialog } from "./deactivate-dialog";
 
@@ -18,9 +21,15 @@ const statusShape: Record<MemberStatus, { shape: "circle" | "triangle" | "square
   Deactivated: { shape: "square", color: colors.muted },
 };
 
+// First field error, else the problem's detail.
+const problemMessage = (p: Problem | undefined) => p?.errors?.[0]?.message ?? p?.detail ?? "Something went wrong.";
+
 export function MembersView() {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+  const { role: signedInAs } = useRole();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loadError, setLoadError] = useState<string>();
   const [inviting, setInviting] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MemberRole>("Employee");
   const [error, setError] = useState<string>();
@@ -28,28 +37,56 @@ export function MembersView() {
   const [deactivateTarget, setDeactivateTarget] = useState<Member | null>(null);
   const [notice, setNotice] = useState<string>();
 
-  const setStatus = (id: number, status: MemberStatus) =>
-    setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, status } : m)));
+  const headers = signedInAs ? authHeaders(signedInAs) : undefined;
 
+  // The API decides who sees whom (BR-OAM-R09).
+  useEffect(() => {
+    if (!signedInAs) return;
+    let live = true;
+    void browserApi.GET("/members", { headers: authHeaders(signedInAs) }).then(({ data, error }) => {
+      if (!live) return;
+      if (error) return setLoadError(problemMessage(error));
+      setLoadError(undefined);
+      setMembers(data);
+    });
+    return () => {
+      live = false;
+    };
+  }, [signedInAs]);
+
+  const replace = (updated: Member) => setMembers((ms) => ms.map((m) => (m.id === updated.id ? updated : m)));
+
+  // No role-change endpoint yet: the change is shown but not saved.
   const changeRole = (member: Member, role: MemberRole) => {
-    setMembers((ms) => ms.map((m) => (m.id === member.id ? { ...m, role } : m)));
+    replace({ ...member, role });
     setRoleTarget(null);
-    setNotice(`${member.name} is now ${role}.`);
+    setNotice(`${member.name} is now ${role} (not saved yet).`);
   };
 
-  const deactivate = (member: Member) => {
-    setStatus(member.id, "Deactivated");
+  const approve = async (member: Member) => {
+    const { data, error } = await browserApi.POST("/members/{memberId}/approve", { headers, params: { path: { memberId: member.id } } });
+    if (error) return setNotice(`Couldn't approve ${member.name}: ${problemMessage(error)}`);
+    replace(data);
+    setNotice(`${member.name} is now active.`);
+  };
+
+  const deactivate = async (member: Member) => {
     setDeactivateTarget(null);
+    const { data, error } = await browserApi.POST("/members/{memberId}/deactivate", { headers, params: { path: { memberId: member.id } } });
+    if (error) return setNotice(`Couldn't deactivate ${member.name}: ${problemMessage(error)}`);
+    replace(data);
     setNotice(`${member.name} was deactivated.`);
   };
 
-  const invite = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address.");
-    if (members.some((m) => m.email === email)) return setError("This person is already a member.");
-    setMembers((ms) => [...ms, { id: Date.now(), name: email.split("@")[0] ?? email, email, role, status: "Pending" }]);
+  const invite = async () => {
+    const { data, error } = await browserApi.POST("/members", { headers, body: { name, email, role } });
+    if (error) return setError(problemMessage(error));
+    setMembers((ms) => [...ms, data]);
     setInviting(false);
+    setName("");
     setEmail("");
     setError(undefined);
+    setNotice(`Invitation sent to ${data.email}.`);
   };
 
   return (
@@ -58,6 +95,11 @@ export function MembersView() {
         <h2 className="text-[22px] font-bold">Members</h2>
         <Button onClick={() => setInviting(true)}>Invite member</Button>
       </div>
+      {loadError ? (
+        <div className="mb-3">
+          <Alert tone="error" title={loadError} />
+        </div>
+      ) : null}
       {notice ? (
         <div className="mb-3">
           <Alert tone="success" title={notice} />
@@ -87,7 +129,7 @@ export function MembersView() {
                 </span>
               </td>
               <td className="py-3 text-right">
-                {m.status === "Pending" ? <Button variant="secondary" onClick={() => setStatus(m.id, "Active")}>Approve</Button> : null}
+                {m.status === "Pending" ? <Button variant="secondary" onClick={() => void approve(m)}>Approve</Button> : null}
                 {m.status === "Active" && m.role !== "Owner" ? (
                   <>
                     <Button variant="ghost" onClick={() => setRoleTarget(m)}>Change role</Button>
@@ -102,11 +144,12 @@ export function MembersView() {
 
       <Dialog open={inviting} onClose={() => setInviting(false)} title="Invite member">
         <div className="flex flex-col gap-4">
+          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} />
           <Select label="Role" value={role} onChange={(v) => setRole(v as MemberRole)} options={memberRoles.filter((r) => r !== "Owner").map((r) => ({ value: r, label: r }))} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setInviting(false)}>Cancel</Button>
-            <Button onClick={invite}>Send invite</Button>
+            <Button onClick={() => void invite()}>Send invite</Button>
           </div>
         </div>
       </Dialog>
@@ -126,7 +169,7 @@ export function MembersView() {
           member={deactivateTarget}
           open
           onClose={() => setDeactivateTarget(null)}
-          onConfirm={() => deactivate(deactivateTarget)}
+          onConfirm={() => void deactivate(deactivateTarget)}
         />
       ) : null}
     </section>

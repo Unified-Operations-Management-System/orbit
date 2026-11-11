@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 
-// Inception prototype only: the role is picked on the sign-in screen, no real auth.
-// Firebase sign-in replaces this (SCRUM-130).
+// Development sign-in: the role picked on the sign-in screen becomes a dev:<role>
+// bearer token the API maps to a seeded member. The production authenticator
+// (API-issued tokens or Firebase) replaces this (SCRUM-130).
 export type Role = "owner" | "supervisor" | "employee";
 export const roleLabels: Record<Role, string> = { owner: "Owner", supervisor: "Supervisor", employee: "Employee" };
 
@@ -38,6 +39,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   return <RoleContext value={{ role, ready, signIn, signOut }}>{children}</RoleContext>;
 }
+
+/** Authorization header for the signed-in role, for calls to the API. */
+export const authHeaders = (role: Role) => ({ Authorization: `Bearer dev:${role}` });
 
 export function useRole(): RoleState {
   const ctx = useContext(RoleContext);
