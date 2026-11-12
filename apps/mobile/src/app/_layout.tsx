@@ -5,7 +5,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
-import { TimeClockProvider } from "@/features/hr/time-clock-store";
 import { RoleProvider } from "@/lib/role";
 import { queryClient } from "@/lib/query-client";
 import { colors } from "@/theme";
@@ -26,12 +25,10 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <RoleProvider>
-        <TimeClockProvider>
-          <ThemeProvider value={theme}>
-            <Stack screenOptions={{ headerShown: false }} />
-            <StatusBar style="dark" />
-          </ThemeProvider>
-        </TimeClockProvider>
+        <ThemeProvider value={theme}>
+          <Stack screenOptions={{ headerShown: false }} />
+          <StatusBar style="dark" />
+        </ThemeProvider>
       </RoleProvider>
     </QueryClientProvider>
   );
