@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Alert, Badge, Button, EmptyState, ListRow, PageHeader, Segmented, T } from "@/components/ui";
+import { Alert, Button, EmptyState, ListRow, PageHeader, Segmented, T } from "@/components/ui";
 import { problemMessage, type Shift, type TimeOff } from "@/features/hr/api";
 import { addDays, formatDay, formatRange, formatTime, sameDay, startOfWeek } from "@/features/hr/format";
 import { Tag, hrStyles } from "@/features/hr/hr-screen";
@@ -60,24 +60,20 @@ export default function Schedule() {
             {items.map(({ shift, off, at }) =>
               off ? (
                 // Ext 2.c
-                <ListRow
-                  key={off.id}
-                  title={formatDay(at)}
-                  subtitle={off.status === "Approved" ? `${off.kind} · approved time off` : `${off.kind} · ${off.status.toLowerCase()}`}
-                  right={<Tag shape="square" color={colors.blue} textColor={colors.blue} label="Time off" />}
-                />
+                <View key={off.id} style={styles.inset}>
+                  <ListRow
+                    title={formatDay(at)}
+                    subtitle={off.status === "Approved" ? `${off.kind} · approved` : `${off.kind} · ${off.status.toLowerCase()}`}
+                    right={<Tag shape="square" color={colors.blue} textColor={colors.blue} label="Time off" />}
+                  />
+                </View>
               ) : (
                 <ListRow
                   key={shift!.id}
-                  title={`${formatDay(at)}${sameDay(at, new Date()) ? " · Today" : ""}`}
+                  // Ext 2.b: changed after publishing
+                  title={`${formatDay(at)}${sameDay(at, new Date()) ? " · Today" : ""}${shift!.changeNote ? " · Updated" : ""}`}
                   subtitle={`${formatTime(shift!.startsAt)} – ${formatTime(shift!.endsAt)} · ${shift!.station}`}
-                  right={
-                    <View style={styles.right}>
-                      {/* Ext 2.b */}
-                      {shift!.changeNote ? <Badge label="Updated" tone="warning" /> : null}
-                      <T>→</T>
-                    </View>
-                  }
+                  right={<T>→</T>}
                   onPress={() => router.push({ pathname: "/hr/shift/[shiftId]", params: { shiftId: shift!.id } })}
                 />
               ),
@@ -93,5 +89,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.paper },
   body: { padding: space[6], gap: space[3] },
   gap: { gap: space[3] },
-  right: { flexDirection: "row", alignItems: "center", gap: space[2] },
+  inset: { paddingHorizontal: space[2] },
 });

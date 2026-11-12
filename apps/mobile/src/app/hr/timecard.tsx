@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 
 import { Alert, Button, ListRow, Segmented, StatCard, T } from "@/components/ui";
 import { problemMessage, type Shift, type TimeCorrection, type TimeEntry } from "@/features/hr/api";
-import { formatDay, formatHours, formatRange, formatTime } from "@/features/hr/format";
+import { formatDate, formatDay, formatHours, formatRange, formatTime } from "@/features/hr/format";
 import { HrScreen, Tag, hrStyles } from "@/features/hr/hr-screen";
 import { $api } from "@/lib/api";
 import { colors, fonts, space } from "@/theme";
@@ -81,7 +81,7 @@ export default function Timecard() {
             <StatCard label="Missing punches" value={String(missing)} accent={missing ? "red" : "ink"} alert={missing > 0} />
           </View>
           <T style={hrStyles.muted}>
-            {closed ? `Closed and paid on ${tc.payPeriod.payDate}. Corrections post as adjustments.` : `Paid on ${tc.payPeriod.payDate}.`} Tap an entry to request a correction.
+            {closed ? `Closed and paid ${formatDate(tc.payPeriod.payDate)}. Corrections post as adjustments.` : `Paid ${formatDate(tc.payPeriod.payDate)}.`} Tap an entry to request a correction.
           </T>
 
           {lines.length === 0 ? (
@@ -94,7 +94,7 @@ export default function Timecard() {
                   title={formatDay(line.at)}
                   subtitle={
                     line.missed
-                      ? `No time entry · scheduled ${formatTime(line.missed.startsAt)} – ${formatTime(line.missed.endsAt)}`
+                      ? "No time entry"
                       : `${formatTime(line.entry!.clockIn)} – ${line.entry!.clockOut ? formatTime(line.entry!.clockOut) : "now"}${line.entry!.source === "Correction" ? " · corrected" : ""}`
                   }
                   right={<LineTag line={line} pending={pendingFor(line)} />}

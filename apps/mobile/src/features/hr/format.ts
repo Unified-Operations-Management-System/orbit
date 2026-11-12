@@ -17,6 +17,12 @@ export function formatDay(d: Date | string): string {
   return `${DAYS[t.getDay()]} ${MONTHS[t.getMonth()]} ${t.getDate()}`;
 }
 
+/** A calendar date from the API ("2026-11-20") as "Fri Nov 20", read as a local date, not UTC midnight. */
+export function formatDate(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return formatDay(new Date(y, m - 1, d));
+}
+
 /** "Nov 2 – 15" or "Oct 26 – Nov 8" for [start, end). */
 export function formatRange(start: Date | string, endExclusive: Date | string): string {
   const a = toDate(start);
