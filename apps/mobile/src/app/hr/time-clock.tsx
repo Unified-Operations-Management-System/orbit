@@ -1,88 +1,96 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { Alert, Badge, Button, Card, Checkbox, Segmented, Sheet, T } from "@/components/ui";
-import { HrScreen, PrototypeNote, Row, Tag, hrStyles } from "@/features/hr/hr-screen";
-import {
-  checkClockIn,
-  clockInDemoTimes,
-  clockOutDemoTimes,
-  clockOutSummary,
-  formatHours,
-  formatTime,
-  hours,
-  hoursThisWeekBeforeToday,
-  today,
-  todayShift,
-} from "@/features/hr/time-attendance";
-import { useTimeClock, type EntryFlag } from "@/features/hr/time-clock-store";
+import { Alert, Badge, Button, Card, Sheet, T } from "@/components/ui";
+import { problemMessage, useRefreshHr, type TimeEntry } from "@/features/hr/api";
+import { formatDay, formatHours, formatTime, hoursBetween } from "@/features/hr/format";
+import { HrScreen, Row, Tag, hrStyles } from "@/features/hr/hr-screen";
+import { $api } from "@/lib/api";
 import { colors, space } from "@/theme";
 
 // WF-03 Time Clock and WF-04 Confirm Punch.
-// UC-HR-01 Clock In (steps 1–7) and UC-HR-02 Clock Out (steps 1–7), with their extensions.
+// UC-HR-01 Clock In and UC-HR-02 Clock Out on the API: GET /hr/clock, POST /hr/clock/in, POST /hr/clock/out.
+// Punch times come from the server clock; the screen only previews them.
 
-const flagText: Record<EntryFlag, string> = { late: "Late", noShift: "Needs supervisor review", earlyOut: "Early out" };
+/** The server's time, kept ticking between refreshes: the offset is fixed when the status is fetched. */
+function useServerNow(serverNow: string | undefined, fetchedAt: number): Date {
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+  const offset = serverNow ? new Date(serverNow).getTime() - fetchedAt : 0;
+  return new Date(Math.max(tick, fetchedAt) + offset);
+}
 
 export default function TimeClockScreen() {
-  const { openSince, openFlags, todayEntry, clockIn, clockOut } = useTimeClock();
-  const clockedIn = openSince !== null;
-
-  // Prototype controls: the presenter picks "now" and failure cases to walk through extensions.
-  const [inTime, setInTime] = useState(clockInDemoTimes[1].value);
-  const [outTime, setOutTime] = useState(clockOutDemoTimes[1].value);
-  const [noShift, setNoShift] = useState(false);
-  const [offline, setOffline] = useState(false);
-
-  const now = Number(clockedIn ? outTime : inTime);
-  const shift = noShift ? null : todayShift;
-
+  const status = $api.useQuery("get", "/hr/clock");
+  const refresh = useRefreshHr();
+  const clockIn = $api.useMutation("post", "/hr/clock/in");
+  const clockOut = $api.useMutation("post", "/hr/clock/out");
   const [confirming, setConfirming] = useState(false);
-  const [problem, setProblem] = useState<{ title: string; message: string } | null>(null);
+  const [lastOut, setLastOut] = useState<TimeEntry | null>(null);
+  const st = status.data;
+  const now = useServerNow(st?.now, status.dataUpdatedAt);
 
-  // UC-HR-01 step 4: check the time against the clock-in window.
-  const inCheck = checkClockIn(now, shift);
-  const inFlags: EntryFlag[] = inCheck.kind === "ok" ? [...(inCheck.late ? (["late"] as const) : []), ...(inCheck.noShift ? (["noShift"] as const) : [])] : [];
-
-  // UC-HR-02 step 4: summary with early out and overtime.
-  const summary = openSince !== null ? clockOutSummary(openSince, now, shift) : null;
-  const outFlags: EntryFlag[] = summary?.earlyOut ? ["earlyOut"] : [];
-
-  function startPunch() {
-    setProblem(null);
-    if (!clockedIn && inCheck.kind === "tooEarly") {
-      // UC-HR-01 ext 4.a
-      setProblem({ title: "Too early to clock in", message: `Your shift starts at ${formatTime(shift!.start)}. You can clock in from ${formatTime(inCheck.earliest)}.` });
-      return;
-    }
-    setConfirming(true);
+  if (status.isPending) {
+    return (
+      <HrScreen eyebrow="HR" title="Time clock" backLabel="Home">
+        <T style={hrStyles.muted}>Loading…</T>
+      </HrScreen>
+    );
+  }
+  if (status.isError || !st) {
+    return (
+      <HrScreen eyebrow="HR" title="Time clock" backLabel="Home">
+        <Alert tone="error" title="Couldn't load the time clock" message={problemMessage(status.error)} />
+        <Button variant="secondary" title="Retry" onPress={() => status.refetch()} />
+      </HrScreen>
+    );
   }
 
-  function confirmPunch() {
+  const open = st.openEntry;
+  const shift = st.shift;
+  const busy = clockIn.isPending || clockOut.isPending;
+  const error = clockIn.error ?? clockOut.error;
+
+  // Preview of what the server will record (UC-HR-01 step 5, UC-HR-02 step 4).
+  const late = !open && !!shift && now > new Date(shift.startsAt);
+  const noShift = !open && !shift;
+  const worked = open ? Math.max(0, hoursBetween(open.clockIn, now)) : 0;
+  const weekTotal = st.hoursThisWeek + worked;
+  const overtime = Math.min(worked, Math.max(0, Math.round((weekTotal - st.settings.overtimeWeeklyHours) * 100) / 100));
+  const earlyOut = !!open && !!shift && now < new Date(shift.endsAt);
+
+  function confirm() {
     setConfirming(false);
-    if (offline) {
-      // UC-HR-01 ext 7.a / UC-HR-02 ext 6.a
-      setProblem({ title: "Not saved, try again", message: clockedIn ? "You are still clocked in. Check your connection and tap Clock Out again." : "You are still clocked out. Check your connection and tap Clock In again." });
-      return;
-    }
-    if (clockedIn) clockOut(now, outFlags);
-    else clockIn(now, inFlags);
+    const opts = {
+      onSuccess: (entry: TimeEntry) => {
+        setLastOut(entry.clockOut ? entry : null);
+        refresh();
+      },
+    };
+    if (open) clockOut.mutate({}, opts);
+    else clockIn.mutate({}, opts);
   }
+
+  // UC-HR-01 ext 4.a: the server refuses an early punch; show its window in local time.
+  const tooEarly = !!error && !open && !!st.earliestClockIn && now < new Date(st.earliestClockIn);
 
   return (
-    <HrScreen eyebrow={`HR · ${today.label}`} title="Time clock" backLabel="Home">
+    <HrScreen eyebrow={`HR · ${formatDay(now)}`} title="Time clock" backLabel="Home">
       {/* Step 2: status, current time and today's shift */}
-      <Card accent={clockedIn ? "blue" : "ink"} style={hrStyles.card}>
+      <Card accent={open ? "blue" : "ink"} style={hrStyles.card}>
         <T variant="label">Status</T>
-        {clockedIn ? (
+        {open ? (
           <>
-            <Tag shape="circle" color={colors.blue} textColor={colors.blue} label={`Clocked in since ${formatTime(openSince!)}`} />
-            <T variant="stat">{formatHours(Math.max(0, hours(openSince!, now)))}</T>
+            <Tag shape="circle" color={colors.blue} textColor={colors.blue} label={`Clocked in since ${formatTime(open.clockIn)}`} />
+            <T variant="stat">{formatHours(worked)}</T>
             <T style={hrStyles.muted}>elapsed at {formatTime(now)}</T>
             <View style={styles.badges}>
-              {openFlags.map((f) => (
-                <Badge key={f} label={flagText[f]} tone="warning" />
-              ))}
+              {open.late ? <Badge label="Late" tone="warning" /> : null}
+              {open.needsReview ? <Badge label="Needs supervisor review" tone="warning" /> : null}
             </View>
           </>
         ) : (
@@ -99,7 +107,7 @@ export default function TimeClockScreen() {
         {shift ? (
           <>
             <T variant="h2">
-              {formatTime(shift.start)} – {formatTime(shift.end)}
+              {formatTime(shift.startsAt)} – {formatTime(shift.endsAt)}
             </T>
             <T style={hrStyles.muted}>{shift.station}</T>
           </>
@@ -109,64 +117,64 @@ export default function TimeClockScreen() {
         )}
       </Card>
 
-      {problem ? <Alert tone="error" title={problem.title} message={problem.message} /> : null}
+      {/* UC-HR-02 ext 2.b: an open punch longer than a shift can be */}
+      {st.missedClockOut && open ? (
+        <>
+          <Alert tone="warning" title="Did you forget to clock out?" message={`You've been clocked in since ${formatDay(open.clockIn)} ${formatTime(open.clockIn)}. Request a correction with the right times instead.`} />
+          <Button variant="secondary" title="Request time correction →" onPress={() => router.push({ pathname: "/hr/correction", params: { entryId: open.id } })} />
+        </>
+      ) : null}
 
-      {/* Shown after clocking out: UC-HR-02 step 7 */}
-      {!clockedIn && todayEntry ? (
+      {error ? (
         <Alert
-          tone="success"
-          title={`Clocked out at ${formatTime(todayEntry.clockOut!)}`}
-          message={`You worked ${formatHours(hours(todayEntry.clockIn!, todayEntry.clockOut!))} today, ${formatHours(hoursThisWeekBeforeToday + hours(todayEntry.clockIn!, todayEntry.clockOut!))} this week.`}
+          tone="error"
+          title={tooEarly ? "Too early to clock in" : open ? "Couldn't clock out" : "Couldn't clock in"}
+          message={tooEarly ? `Your shift starts at ${formatTime(shift!.startsAt)}. You can clock in from ${formatTime(st.earliestClockIn!)}.` : problemMessage(error)}
         />
       ) : null}
 
+      {/* UC-HR-02 step 7 */}
+      {!open && lastOut?.clockOut ? (
+        <Alert tone="success" title={`Clocked out at ${formatTime(lastOut.clockOut)}`} message={`You worked ${formatHours(lastOut.hours)} on this punch, ${formatHours(st.hoursThisWeek)} this week.`} />
+      ) : null}
+
       {/* Step 3 */}
-      <Button large title={clockedIn ? "Clock out" : "Clock in →"} onPress={startPunch} />
+      <Button large title={busy ? "Saving…" : open ? "Clock out" : "Clock in →"} disabled={busy} onPress={() => setConfirming(true)} />
       <Button variant="ghost" title="My timecard →" onPress={() => router.push("/hr/timecard")} />
 
-      {/* WF-04 Confirm Punch: UC-HR-01 step 5 / UC-HR-02 step 4 */}
-      <Sheet visible={confirming} onClose={() => setConfirming(false)} title={clockedIn ? "Confirm clock out" : "Confirm clock in"}>
+      {/* WF-04 Confirm Punch */}
+      <Sheet visible={confirming} onClose={() => setConfirming(false)} title={open ? "Confirm clock out" : "Confirm clock in"}>
         <View style={styles.sheet}>
-          {clockedIn && summary ? (
+          {open ? (
             <>
-              <Row label="Clocked in" value={formatTime(openSince!)} />
+              <Row label="Clocked in" value={formatTime(open.clockIn)} />
               <Row label="Clocking out" value={formatTime(now)} />
-              {summary.overtime > 0 ? (
+              {overtime > 0 ? (
                 // UC-HR-02 ext 4.b
                 <>
-                  <Row label="Regular hours" value={formatHours(summary.regular)} />
-                  <Row label="Overtime hours" value={formatHours(summary.overtime)} />
+                  <Row label="Regular hours" value={formatHours(Math.round((worked - overtime) * 100) / 100)} />
+                  <Row label="Overtime hours" value={formatHours(overtime)} />
                 </>
               ) : (
-                <Row label="Hours worked" value={formatHours(summary.worked)} />
+                <Row label="Hours worked" value={formatHours(worked)} />
               )}
-              <Row label="This week" value={formatHours(summary.weekTotal)} />
-              {summary.earlyOut ? <Alert tone="warning" title="Early out" message={`Your shift ends at ${formatTime(shift!.end)}. This entry will be marked Early Out.`} /> : null}
-              {summary.overtime > 0 ? <Alert tone="info" title="Overtime" message="This week is over 40 hours, so the extra time is shown as overtime." /> : null}
+              <Row label="This week" value={formatHours(Math.round(weekTotal * 100) / 100)} />
+              {earlyOut ? <Alert tone="warning" title="Early out" message={`Your shift ends at ${formatTime(shift!.endsAt)}. This entry will be marked Early Out.`} /> : null}
+              {overtime > 0 ? <Alert tone="info" title="Overtime" message={`This week is over ${st.settings.overtimeWeeklyHours} hours, so the extra time is overtime.`} /> : null}
             </>
           ) : (
             <>
               <Row label="Clock in at" value={formatTime(now)} />
-              {shift ? <Row label="Shift" value={`${formatTime(shift.start)} – ${formatTime(shift.end)}`} /> : null}
-              {inFlags.includes("late") ? <Alert tone="warning" title="Late" message={`Your shift started at ${formatTime(shift!.start)}. This entry will be marked Late.`} /> : null}
-              {inFlags.includes("noShift") ? <Alert tone="warning" title="No shift today" message="This entry will be sent to your supervisor for review." /> : null}
+              {shift ? <Row label="Shift" value={`${formatTime(shift.startsAt)} – ${formatTime(shift.endsAt)}`} /> : null}
+              {late ? <Alert tone="warning" title="Late" message={`Your shift started at ${formatTime(shift!.startsAt)}. This entry will be marked Late.`} /> : null}
+              {noShift ? <Alert tone="warning" title="No shift today" message="This entry will be sent to your supervisor for review." /> : null}
             </>
           )}
-          <Button title={clockedIn ? "Confirm clock out" : "Confirm clock in"} onPress={confirmPunch} />
+          <Button title={open ? "Confirm clock out" : "Confirm clock in"} onPress={confirm} />
           {/* UC-HR-01 ext 6.a / UC-HR-02 ext 5.a */}
           <Button variant="ghost" title="Cancel" onPress={() => setConfirming(false)} />
         </View>
       </Sheet>
-
-      {/* Prototype controls */}
-      <Card style={[hrStyles.card, styles.demo]}>
-        <T variant="label">Prototype controls</T>
-        <T style={hrStyles.muted}>Pick the current time to show each use-case extension.</T>
-        <Segmented options={clockedIn ? clockOutDemoTimes : clockInDemoTimes} value={clockedIn ? outTime : inTime} onChange={clockedIn ? setOutTime : setInTime} />
-        {!clockedIn ? <Checkbox label="No shift scheduled today" checked={noShift} onChange={setNoShift} /> : null}
-        <Checkbox label="Simulate lost connection" checked={offline} onChange={setOffline} />
-      </Card>
-      <PrototypeNote>Prototype: punches are kept in memory only. The server clock and saving arrive with the HR API.</PrototypeNote>
     </HrScreen>
   );
 }
@@ -174,5 +182,4 @@ export default function TimeClockScreen() {
 const styles = StyleSheet.create({
   badges: { flexDirection: "row", gap: space[2], flexWrap: "wrap" },
   sheet: { gap: space[3] },
-  demo: { marginTop: space[6], backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
 });
