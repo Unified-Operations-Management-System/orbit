@@ -3,17 +3,19 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Card, ListRow, StatusPill, T } from "@/components/ui";
-import { formatTime } from "@/features/hr/time-attendance";
-import { useTimeClock } from "@/features/hr/time-clock-store";
+import { formatHours, formatTime } from "@/features/hr/format";
 import { myTasks, todayShift } from "@/features/home/mock-data";
+import { $api } from "@/lib/api";
 import { roleLabels, useRole } from "@/lib/role";
 import { colors, space } from "@/theme";
 
 export default function Home() {
   const { role } = useRole();
-  // HR Time and Attendance (UC-HR-01 step 1): Home opens the Time Clock and shows the punch status.
-  const { openSince } = useTimeClock();
-  const clockedIn = openSince !== null;
+  // HR Time and Attendance (UC-HR-01 step 1): Home shows today's shift and punch status from
+  // GET /hr/clock and opens the Time Clock.
+  const { data: clock } = $api.useQuery("get", "/hr/clock");
+  const open = clock?.openEntry;
+  const shift = clock?.shift;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.flex}>
@@ -22,13 +24,18 @@ export default function Home() {
         <T variant="display">Good morning, {role ? roleLabels[role] : ""}.</T>
         <Card accent="blue">
           <T variant="label">Today</T>
-          <T variant="h2">{todayShift.time}</T>
-          <T style={{ color: colors.muted }}>{todayShift.station}</T>
+          <T variant="h2">{shift ? `${formatTime(shift.startsAt)} – ${formatTime(shift.endsAt)}` : clock ? "No shift today" : "…"}</T>
+          {shift ? <T style={{ color: colors.muted }}>{shift.station}</T> : null}
         </Card>
-        <Button large title={clockedIn ? "Clock out →" : "Clock in →"} onPress={() => router.push("/hr/time-clock")} />
-        {clockedIn ? <T style={{ color: colors.muted }}>Clocked in at {formatTime(openSince)}</T> : null}
+        <Button large title={open ? "Clock out →" : "Clock in →"} onPress={() => router.push("/hr/time-clock")} />
+        {open ? <T style={{ color: colors.muted }}>Clocked in at {formatTime(open.clockIn)}</T> : null}
         <View style={styles.list}>
-          <ListRow title="My timecard" subtitle="Hours this pay period and corrections" right={<T>→</T>} onPress={() => router.push("/hr/timecard")} />
+          <ListRow
+            title="My timecard"
+            subtitle={clock ? `${formatHours(clock.hoursThisPeriod)} this pay period · corrections` : "Hours this pay period and corrections"}
+            right={<T>→</T>}
+            onPress={() => router.push("/hr/timecard")}
+          />
         </View>
         <T variant="h2" style={{ marginTop: space[4] }}>My tasks</T>
         <View style={styles.list}>
