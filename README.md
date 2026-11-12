@@ -187,10 +187,16 @@ modules download automatically the first time the API runs.
 ### 3. Run
 
 ```bash
-pnpm dev           # everything: API + web + mobile
-pnpm dev:web       # API + web only
-pnpm dev:mobile    # API + mobile only
+pnpm start         # API + database + web (the one to use day to day; `npm start` works too)
+pnpm dev           # everything: API + database + web + mobile
+pnpm dev:mobile    # API + database + mobile only
+pnpm start:prod    # API on the main (professor) data set
 ```
+
+The database starts with the API: it's a SQLite file the API opens, migrates and seeds on
+boot (`services/api/data/orbit-dev.db`), so there's nothing else to install or run. Your data
+survives restarts; `pnpm db:reset` starts over. Adding tables for your area:
+[services/api/README.md](services/api/README.md#database).
 
 | What | Where |
 |---|---|
@@ -214,7 +220,9 @@ All from the repo root.
 
 | Command | What it does |
 |---|---|
-| `pnpm dev` / `dev:web` / `dev:mobile` | Run the apps in watch mode (see above) |
+| `pnpm start` / `dev` / `dev:mobile` | Run the apps (API + database included) in watch mode (see above) |
+| `pnpm db:new <area> <what>` | New migration (add `--seed dev` or `--seed prod` for seed data) |
+| `pnpm db:status` / `db:reset` | Applied and pending migrations / delete the dev database |
 | `pnpm mock` | Mock API on :4010 that answers from the spec's examples |
 | `pnpm gen` | Bundle the spec and regenerate the Go + TS code once |
 | `pnpm lint` | Redocly (spec rules) + `go vet` + ESLint (web) + `expo lint` (mobile) |
@@ -225,7 +233,7 @@ All from the repo root.
 | `pnpm --filter sim test` | Run CTest for the C++ simulator |
 | `pnpm api:breaking` | Would this branch break existing clients? (compares with `origin/main`) |
 | `pnpm api:changelog` | Readable list of every API change vs `origin/main` |
-| `docker compose up --build` | API + web as production containers (needs Docker running) |
+| `pnpm docker:up` / `docker:down` / `docker:reset` | API + web as production containers, database in a volume (needs Docker or Colima running) |
 
 Run a script in a single package with `pnpm --filter <name> <script>`. Package names:
 `api`, `web`, `mobile`, `sim`, `@orbit/api-spec`, `@orbit/api-client`. For example,

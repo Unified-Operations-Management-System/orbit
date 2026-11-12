@@ -1,10 +1,12 @@
-# Production-like local run:  docker compose up --build
+# Production-like local run:  pnpm docker:up  (= docker compose up --build)
+# The SQLite file lives in the orbit-data volume; `pnpm docker:reset` deletes it.
 services:
   api:
     build: ./services/api
+    # Dev data by default; `ORBIT_ENV=prod pnpm docker:up` runs the main (professor) data set.
     environment:
-      ORBIT_ENV: prod
-      DB_PATH: /data/orbit.db
+      ORBIT_ENV: ${ORBIT_ENV:-dev}
+      DB_PATH: /data/orbit-${ORBIT_ENV:-dev}.db
     volumes:
       - orbit-data:/data
     ports:
