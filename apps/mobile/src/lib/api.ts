@@ -31,5 +31,20 @@ export const API_URL = resolveApiUrl();
 /** Plain typed client (same one the web app uses). */
 export const api = createApiClient(API_URL);
 
+/**
+ * Development sign-in: the role picked on the sign-in screen becomes a dev:<role> bearer
+ * token the API maps to a seeded member (same as the web app). Firebase replaces it (SCRUM-130).
+ */
+let authToken: string | null = null;
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+api.use({
+  onRequest({ request }) {
+    if (authToken) request.headers.set("Authorization", `Bearer ${authToken}`);
+    return request;
+  },
+});
+
 /** Typed TanStack Query hooks: $api.useQuery("get", "/todos"), $api.useMutation("post", "/todos"). */
 export const $api = createQueryHooks(api);
