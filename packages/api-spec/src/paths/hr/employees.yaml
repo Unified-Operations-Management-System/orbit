@@ -1,0 +1,53 @@
+get:
+  operationId: listHrEmployees
+  summary: List employees with attendance
+  description: |
+    Employees the caller may see with their team, clock status, hours this pay period and pending
+    corrections. Filters combine; status defaults to Active. One query on the server.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: teamId
+      in: query
+      required: false
+      description: Only this team.
+      schema:
+        type: string
+    - name: status
+      in: query
+      required: false
+      description: Membership status; default Active.
+      schema:
+        $ref: ../../components/schemas/members/MemberStatus.yaml
+    - name: role
+      in: query
+      required: false
+      description: Only this role.
+      schema:
+        $ref: ../../components/schemas/members/MemberRole.yaml
+    - name: q
+      in: query
+      required: false
+      description: Name or email contains (case-insensitive).
+      schema:
+        type: string
+    - name: clockedIn
+      in: query
+      required: false
+      description: Only employees who are (true) or aren't (false) clocked in.
+      schema:
+        type: boolean
+  responses:
+    "200":
+      description: Employees, by name.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/HrEmployeeList.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

@@ -1,0 +1,22 @@
+post:
+  operationId: clockOut
+  summary: Clock out
+  description: |
+    Closes the caller's open punch now (UC-HR-02). 409 if not clocked in. A punch closed before
+    the shift ends is marked early out.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The closed punch.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeEntry.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

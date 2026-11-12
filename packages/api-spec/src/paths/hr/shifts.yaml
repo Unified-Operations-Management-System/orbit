@@ -1,0 +1,50 @@
+get:
+  operationId: listShifts
+  summary: List shifts
+  description: |
+    Shifts and time off overlapping [from, to), default this week and next (UC-HR-03).
+    Employees see their own published shifts; supervisors see their team, drafts included;
+    the owner and HR administrators see the company. At most 93 days.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: from
+      in: query
+      required: false
+      description: Start of the range (inclusive).
+      schema:
+        type: string
+        format: date-time
+    - name: to
+      in: query
+      required: false
+      description: End of the range (exclusive).
+      schema:
+        type: string
+        format: date-time
+    - name: memberId
+      in: query
+      required: false
+      description: Only this employee.
+      schema:
+        type: string
+    - name: teamId
+      in: query
+      required: false
+      description: Only this team.
+      schema:
+        type: string
+  responses:
+    "200":
+      description: The schedule.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/Schedule.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

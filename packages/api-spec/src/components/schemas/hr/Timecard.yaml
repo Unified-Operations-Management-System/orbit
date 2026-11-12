@@ -1,0 +1,29 @@
+title: Timecard
+type: object
+description: One employee's pay period (UC-HR-04 steps 1-2).
+required: [member, payPeriod, entries, missedShifts, corrections, hours, regularHours, overtimeHours]
+properties:
+  member:
+    $ref: HrEmployee.yaml
+  payPeriod:
+    $ref: PayPeriod.yaml
+  entries:
+    type: array
+    items:
+      $ref: TimeEntry.yaml
+  missedShifts:
+    type: array
+    description: Shifts that have ended with no punch.
+    items:
+      $ref: Shift.yaml
+  corrections:
+    type: array
+    description: Pending requests and requests for work in this period.
+    items:
+      $ref: TimeCorrection.yaml
+  hours:
+    type: number
+  regularHours:
+    type: number
+  overtimeHours:
+    type: number

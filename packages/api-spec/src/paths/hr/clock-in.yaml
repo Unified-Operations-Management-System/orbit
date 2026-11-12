@@ -1,0 +1,23 @@
+post:
+  operationId: clockIn
+  summary: Clock in
+  description: |
+    Starts a punch now against today's shift (UC-HR-01). 409 if already clocked in, too early
+    for the shift's clock-in window, or the pay period is closed. A punch after the shift start
+    is marked late; a punch with no shift is flagged for review.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "201":
+      description: The open punch.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeEntry.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

@@ -253,6 +253,290 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hr/clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my clock status
+         * @description The caller's punch status, today's shift, the clock-in window and hours this week and
+         *     pay period (UC-HR-01 step 2, UC-HR-02 step 2). Times come from the server clock.
+         */
+        get: operations["getClockStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/clock/in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clock in
+         * @description Starts a punch now against today's shift (UC-HR-01). 409 if already clocked in, too early
+         *     for the shift's clock-in window, or the pay period is closed. A punch after the shift start
+         *     is marked late; a punch with no shift is flagged for review.
+         */
+        post: operations["clockIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/clock/out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clock out
+         * @description Closes the caller's open punch now (UC-HR-02). 409 if not clocked in. A punch closed before
+         *     the shift ends is marked early out.
+         */
+        post: operations["clockOut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shifts
+         * @description Shifts and time off overlapping [from, to), default this week and next (UC-HR-03).
+         *     Employees see their own published shifts; supervisors see their team, drafts included;
+         *     the owner and HR administrators see the company. At most 93 days.
+         */
+        get: operations["listShifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/shifts/{shiftId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Shift ID.
+                 * @example sh-sam-w0-mon
+                 */
+                shiftId: components["parameters"]["ShiftId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a shift
+         * @description One shift's hours, station, supervisor notes and changes (UC-HR-03 step 4). 404 if the
+         *     caller can't see it.
+         */
+        get: operations["getShift"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/timecard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a timecard
+         * @description An employee's punches, missed shifts, correction requests and regular/overtime hours for a
+         *     pay period (UC-HR-04 steps 1-2). Defaults to the caller and the current period. 404 if the
+         *     caller can't see the employee or the period doesn't exist.
+         */
+        get: operations["getTimecard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/pay-periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pay periods
+         * @description The company's pay periods, oldest first.
+         */
+        get: operations["listPayPeriods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/time-corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List time corrections
+         * @description Correction requests the caller may see, newest first: an employee's own, a supervisor's team,
+         *     or the whole company for the owner and HR administrators.
+         */
+        get: operations["listTimeCorrections"];
+        put?: never;
+        /**
+         * Request a time correction
+         * @description Saves a pending correction and routes it to the employee's supervisor, else HR (UC-HR-04).
+         *     The original punch is unchanged until approved. 422 for a missing reason, clockOut not after
+         *     clockIn, overlapping punches, or a closed period without acknowledgeAdjustment; 409 if the
+         *     punch already has a pending request.
+         */
+        post: operations["requestTimeCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/time-corrections/{correctionId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a time correction
+         * @description Cancels the caller's own pending request (UC-HR-04 ext 3.b). 409 if it is no longer pending.
+         */
+        post: operations["withdrawTimeCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/time-corrections/{correctionId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a time correction
+         * @description Writes the corrected times onto the punch, or adds the missing punch, in one transaction.
+         *     The team's supervisor, an HR administrator or the owner may approve; never the requester
+         *     (403). 409 if it is no longer pending.
+         */
+        post: operations["approveTimeCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/time-corrections/{correctionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a time correction
+         * @description Rejects a pending request; the punch is unchanged. Same reviewers as approve.
+         */
+        post: operations["rejectTimeCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List employees with attendance
+         * @description Employees the caller may see with their team, clock status, hours this pay period and pending
+         *     corrections. Filters combine; status defaults to Active. One query on the server.
+         */
+        get: operations["listHrEmployees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -463,6 +747,272 @@ export interface components {
             /** @description One line, e.g. "Invited casey@example.com as Employee". */
             summary: string;
         };
+        /**
+         * TimeEntry
+         * @description One punch pair (UC-HR-01, UC-HR-02). clockOut is absent while clocked in.
+         */
+        TimeEntry: {
+            /** @example te-sam-w0-mon */
+            id: string;
+            /** @example m-3 */
+            memberId: string;
+            /** @description The shift the punch was made against; absent for an unscheduled punch. */
+            shiftId?: string;
+            /** Format: date-time */
+            clockIn: string;
+            /** Format: date-time */
+            clockOut?: string;
+            /** @description Clocked in after the shift started. */
+            late: boolean;
+            /** @description Clocked out before the shift ended. */
+            earlyOut: boolean;
+            /** @description Clocked in with no shift scheduled; the supervisor reviews it. */
+            needsReview: boolean;
+            /**
+             * @description Correction when an approved correction wrote these times.
+             * @enum {string}
+             */
+            source: "Clock" | "Correction";
+            /**
+             * @description Hours worked; 0 while clocked in.
+             * @example 8.07
+             */
+            hours: number;
+        };
+        /**
+         * Shift
+         * @description One scheduled shift for one employee (UC-HR-03).
+         */
+        Shift: {
+            /** @example sh-sam-w0-mon */
+            id: string;
+            /**
+             * @description The employee (an OAM member).
+             * @example m-3
+             */
+            memberId: string;
+            /** @example Sam Patel */
+            memberName: string;
+            /**
+             * @description Team the shift belongs to.
+             * @example team-line-1
+             */
+            teamId?: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @example Packing Line 2 */
+            station: string;
+            /** @description Notes from the supervisor; empty when there are none. */
+            notes: string;
+            /** @description False for a draft only supervisors and HR can see. */
+            published: boolean;
+            /**
+             * @description What changed after the shift was published; the app shows it as Updated.
+             * @example Moved from 7:00 AM to 11:00 AM
+             */
+            changeNote?: string;
+            /**
+             * @description Scheduled hours.
+             * @example 8
+             */
+            hours: number;
+        };
+        /**
+         * PayPeriod
+         * @description A pay period, from startsAt (inclusive) to endsAt (exclusive).
+         */
+        PayPeriod: {
+            /** @example pp-now */
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: date */
+            payDate: string;
+            /**
+             * @description Closed periods are paid and locked; corrections post as adjustments.
+             * @enum {string}
+             */
+            status: "Open" | "Closed";
+        };
+        /**
+         * HrSettings
+         * @description The company's pay and time rules.
+         */
+        HrSettings: {
+            /** @example America/Toronto */
+            timezone: string;
+            /**
+             * @description How early before a shift an employee may clock in.
+             * @example 15
+             */
+            clockInWindowMinutes: number;
+            /** @example 40 */
+            overtimeWeeklyHours: number;
+            /**
+             * @description An open punch longer than this probably missed a clock-out.
+             * @example 12
+             */
+            maxShiftHours: number;
+        };
+        /**
+         * ClockStatus
+         * @description What the Time Clock screen shows (UC-HR-01 step 2, UC-HR-02 step 2).
+         */
+        ClockStatus: {
+            /**
+             * Format: date-time
+             * @description The server's time; punches use it, not the phone's clock.
+             */
+            now: string;
+            clockedIn: boolean;
+            openEntry?: components["schemas"]["TimeEntry"];
+            shift?: components["schemas"]["Shift"];
+            /**
+             * Format: date-time
+             * @description When the clock-in window for the shift opens.
+             */
+            earliestClockIn?: string;
+            /** @description The open punch is longer than a shift can be; request a correction instead (UC-HR-02 ext 2.b). */
+            missedClockOut: boolean;
+            /** @description Closed hours since Monday, before the current punch. */
+            hoursThisWeek: number;
+            hoursThisPeriod: number;
+            payPeriod?: components["schemas"]["PayPeriod"];
+            settings: components["schemas"]["HrSettings"];
+        };
+        /**
+         * TimeOff
+         * @description Leave shown on the schedule.
+         */
+        TimeOff: {
+            /** @example to-sam-w1-wed */
+            id: string;
+            /** @example m-3 */
+            memberId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            kind: "Vacation" | "Sick" | "Personal";
+            /** @enum {string} */
+            status: "Pending" | "Approved" | "Rejected";
+            note: string;
+        };
+        /**
+         * Schedule
+         * @description Shifts and time off in a date range.
+         */
+        Schedule: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            shifts: components["schemas"]["Shift"][];
+            timeOff: components["schemas"]["TimeOff"][];
+        };
+        /**
+         * HrEmployee
+         * @description An employee (OAM member) with their attendance this pay period.
+         */
+        HrEmployee: {
+            /** @example m-3 */
+            id: string;
+            /** @example Sam Patel */
+            name: string;
+            /** Format: email */
+            email: string;
+            role: components["schemas"]["MemberRole"];
+            status: components["schemas"]["MemberStatus"];
+            teamId?: string;
+            /** @example Production line 1 */
+            teamName?: string;
+            /**
+             * Format: date-time
+             * @description Present while the employee is clocked in.
+             */
+            clockedInSince?: string;
+            hoursThisPeriod: number;
+            pendingCorrections: number;
+        };
+        /**
+         * TimeCorrectionStatus
+         * @description Pending until a reviewer approves or rejects it, or the employee withdraws it.
+         * @example Pending
+         * @enum {string}
+         */
+        TimeCorrectionStatus: "Pending" | "Approved" | "Rejected" | "Withdrawn";
+        /**
+         * TimeCorrection
+         * @description A request to fix a punch or add a missing one (UC-HR-04).
+         */
+        TimeCorrection: {
+            /** @example tc-sam-w-1-fri */
+            id: string;
+            /** @example m-3 */
+            memberId: string;
+            /** @example Sam Patel */
+            memberName: string;
+            /** @description The punch to fix; absent when adding a missing entry. */
+            timeEntryId?: string;
+            shiftId?: string;
+            /** Format: date-time */
+            clockIn: string;
+            /** Format: date-time */
+            clockOut: string;
+            reason: string;
+            status: components["schemas"]["TimeCorrectionStatus"];
+            /** @description The work was in a closed pay period, so it posts as an adjustment. */
+            adjustment: boolean;
+            /** @description Who must review it, the team's supervisor or else an HR administrator. */
+            assignedToId?: string;
+            reviewerId?: string;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+        };
+        /**
+         * Timecard
+         * @description One employee's pay period (UC-HR-04 steps 1-2).
+         */
+        Timecard: {
+            member: components["schemas"]["HrEmployee"];
+            payPeriod: components["schemas"]["PayPeriod"];
+            entries: components["schemas"]["TimeEntry"][];
+            /** @description Shifts that have ended with no punch. */
+            missedShifts: components["schemas"]["Shift"][];
+            /** @description Pending requests and requests for work in this period. */
+            corrections: components["schemas"]["TimeCorrection"][];
+            hours: number;
+            regularHours: number;
+            overtimeHours: number;
+        };
+        /**
+         * RequestTimeCorrectionRequest
+         * @description Give timeEntryId to fix a punch, or shiftId to add a punch for a shift that has none.
+         */
+        RequestTimeCorrectionRequest: {
+            timeEntryId?: string;
+            shiftId?: string;
+            /** Format: date-time */
+            clockIn: string;
+            /** Format: date-time */
+            clockOut: string;
+            /** @example Forgot to clock out after the line stopped */
+            reason: string;
+            /** @description Required for a closed pay period; the employee accepts an adjustment in the current one. */
+            acknowledgeAdjustment?: boolean;
+        };
+        /** HrEmployeeList */
+        HrEmployeeList: {
+            payPeriod?: components["schemas"]["PayPeriod"];
+            employees: components["schemas"]["HrEmployee"][];
+        };
     };
     responses: {
         /** @description Unexpected error. */
@@ -579,6 +1129,16 @@ export interface components {
          * @example m-5
          */
         MemberId: string;
+        /**
+         * @description Shift ID.
+         * @example sh-sam-w0-mon
+         */
+        ShiftId: string;
+        /**
+         * @description Time correction ID.
+         * @example tc-sam-w-1-fri
+         */
+        CorrectionId: string;
     };
     requestBodies: never;
     headers: never;
@@ -977,6 +1537,370 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    getClockStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Clock status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClockStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    clockIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open punch. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    clockOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The closed punch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listShifts: {
+        parameters: {
+            query?: {
+                /** @description Start of the range (inclusive). */
+                from?: string;
+                /** @description End of the range (exclusive). */
+                to?: string;
+                /** @description Only this employee. */
+                memberId?: string;
+                /** @description Only this team. */
+                teamId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The schedule. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Schedule"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    getShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Shift ID.
+                 * @example sh-sam-w0-mon
+                 */
+                shiftId: components["parameters"]["ShiftId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The shift. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    getTimecard: {
+        parameters: {
+            query?: {
+                /** @description Pay period; default the current one. */
+                payPeriodId?: string;
+                /** @description Employee; default the caller. */
+                memberId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The timecard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timecard"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listPayPeriods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pay periods. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayPeriod"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listTimeCorrections: {
+        parameters: {
+            query?: {
+                /** @description Only this status. */
+                status?: components["schemas"]["TimeCorrectionStatus"];
+                /** @description Only this employee. */
+                memberId?: string;
+                /** @description Only requests waiting on the caller. */
+                assignedToMe?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Correction requests. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeCorrection"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    requestTimeCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTimeCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description The pending request. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeCorrection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    withdrawTimeCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeCorrection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    approveTimeCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeCorrection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    rejectTimeCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Time correction ID.
+                 * @example tc-sam-w-1-fri
+                 */
+                correctionId: components["parameters"]["CorrectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeCorrection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listHrEmployees: {
+        parameters: {
+            query?: {
+                /** @description Only this team. */
+                teamId?: string;
+                /** @description Membership status; default Active. */
+                status?: components["schemas"]["MemberStatus"];
+                /** @description Only this role. */
+                role?: components["schemas"]["MemberRole"];
+                /** @description Name or email contains (case-insensitive). */
+                q?: string;
+                /** @description Only employees who are (true) or aren't (false) clocked in. */
+                clockedIn?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employees, by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrEmployeeList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
             default: components["responses"]["UnexpectedError"];
         };

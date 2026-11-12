@@ -1,0 +1,31 @@
+title: HrEmployee
+type: object
+description: An employee (OAM member) with their attendance this pay period.
+required: [id, name, email, role, status, hoursThisPeriod, pendingCorrections]
+properties:
+  id:
+    type: string
+    examples: [m-3]
+  name:
+    type: string
+    examples: [Sam Patel]
+  email:
+    type: string
+    format: email
+  role:
+    $ref: ../members/MemberRole.yaml
+  status:
+    $ref: ../members/MemberStatus.yaml
+  teamId:
+    type: string
+  teamName:
+    type: string
+    examples: [Production line 1]
+  clockedInSince:
+    type: string
+    format: date-time
+    description: Present while the employee is clocked in.
+  hoursThisPeriod:
+    type: number
+  pendingCorrections:
+    type: integer

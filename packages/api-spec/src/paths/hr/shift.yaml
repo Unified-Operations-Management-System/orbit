@@ -1,0 +1,25 @@
+parameters:
+  - $ref: ../../components/parameters/ShiftId.yaml
+
+get:
+  operationId: getShift
+  summary: Get a shift
+  description: |
+    One shift's hours, station, supervisor notes and changes (UC-HR-03 step 4). 404 if the
+    caller can't see it.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The shift.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/Shift.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

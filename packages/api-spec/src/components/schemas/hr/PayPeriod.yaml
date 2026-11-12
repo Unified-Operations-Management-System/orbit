@@ -1,0 +1,21 @@
+title: PayPeriod
+type: object
+description: A pay period, from startsAt (inclusive) to endsAt (exclusive).
+required: [id, startsAt, endsAt, payDate, status]
+properties:
+  id:
+    type: string
+    examples: [pp-now]
+  startsAt:
+    type: string
+    format: date-time
+  endsAt:
+    type: string
+    format: date-time
+  payDate:
+    type: string
+    format: date
+  status:
+    type: string
+    enum: [Open, Closed]
+    description: Closed periods are paid and locked; corrections post as adjustments.

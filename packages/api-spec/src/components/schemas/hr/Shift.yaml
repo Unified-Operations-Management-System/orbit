@@ -1,0 +1,42 @@
+title: Shift
+type: object
+description: One scheduled shift for one employee (UC-HR-03).
+required: [id, memberId, memberName, startsAt, endsAt, station, notes, published, hours]
+properties:
+  id:
+    type: string
+    examples: [sh-sam-w0-mon]
+  memberId:
+    type: string
+    description: The employee (an OAM member).
+    examples: [m-3]
+  memberName:
+    type: string
+    examples: [Sam Patel]
+  teamId:
+    type: string
+    description: Team the shift belongs to.
+    examples: [team-line-1]
+  startsAt:
+    type: string
+    format: date-time
+  endsAt:
+    type: string
+    format: date-time
+  station:
+    type: string
+    examples: [Packing Line 2]
+  notes:
+    type: string
+    description: Notes from the supervisor; empty when there are none.
+  published:
+    type: boolean
+    description: False for a draft only supervisors and HR can see.
+  changeNote:
+    type: string
+    description: What changed after the shift was published; the app shows it as Updated.
+    examples: [Moved from 7:00 AM to 11:00 AM]
+  hours:
+    type: number
+    description: Scheduled hours.
+    examples: [8]

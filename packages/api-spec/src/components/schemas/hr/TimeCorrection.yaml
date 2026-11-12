@@ -1,0 +1,43 @@
+title: TimeCorrection
+type: object
+description: A request to fix a punch or add a missing one (UC-HR-04).
+required: [id, memberId, memberName, clockIn, clockOut, reason, status, adjustment, submittedAt]
+properties:
+  id:
+    type: string
+    examples: [tc-sam-w-1-fri]
+  memberId:
+    type: string
+    examples: [m-3]
+  memberName:
+    type: string
+    examples: [Sam Patel]
+  timeEntryId:
+    type: string
+    description: The punch to fix; absent when adding a missing entry.
+  shiftId:
+    type: string
+  clockIn:
+    type: string
+    format: date-time
+  clockOut:
+    type: string
+    format: date-time
+  reason:
+    type: string
+  status:
+    $ref: TimeCorrectionStatus.yaml
+  adjustment:
+    type: boolean
+    description: The work was in a closed pay period, so it posts as an adjustment.
+  assignedToId:
+    type: string
+    description: Who must review it, the team's supervisor or else an HR administrator.
+  reviewerId:
+    type: string
+  submittedAt:
+    type: string
+    format: date-time
+  reviewedAt:
+    type: string
+    format: date-time

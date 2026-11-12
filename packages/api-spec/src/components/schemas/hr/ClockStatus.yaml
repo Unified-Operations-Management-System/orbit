@@ -1,0 +1,31 @@
+title: ClockStatus
+type: object
+description: What the Time Clock screen shows (UC-HR-01 step 2, UC-HR-02 step 2).
+required: [now, clockedIn, missedClockOut, hoursThisWeek, hoursThisPeriod, settings]
+properties:
+  now:
+    type: string
+    format: date-time
+    description: The server's time; punches use it, not the phone's clock.
+  clockedIn:
+    type: boolean
+  openEntry:
+    $ref: TimeEntry.yaml
+  shift:
+    $ref: Shift.yaml
+  earliestClockIn:
+    type: string
+    format: date-time
+    description: When the clock-in window for the shift opens.
+  missedClockOut:
+    type: boolean
+    description: The open punch is longer than a shift can be; request a correction instead (UC-HR-02 ext 2.b).
+  hoursThisWeek:
+    type: number
+    description: Closed hours since Monday, before the current punch.
+  hoursThisPeriod:
+    type: number
+  payPeriod:
+    $ref: PayPeriod.yaml
+  settings:
+    $ref: HrSettings.yaml

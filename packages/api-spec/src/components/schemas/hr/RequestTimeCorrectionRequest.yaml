@@ -1,0 +1,23 @@
+title: RequestTimeCorrectionRequest
+type: object
+description: Give timeEntryId to fix a punch, or shiftId to add a punch for a shift that has none.
+required: [clockIn, clockOut, reason]
+properties:
+  timeEntryId:
+    type: string
+  shiftId:
+    type: string
+  clockIn:
+    type: string
+    format: date-time
+  clockOut:
+    type: string
+    format: date-time
+  reason:
+    type: string
+    minLength: 1
+    maxLength: 500
+    examples: [Forgot to clock out after the line stopped]
+  acknowledgeAdjustment:
+    type: boolean
+    description: Required for a closed pay period; the employee accepts an adjustment in the current one.

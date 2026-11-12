@@ -1,0 +1,9 @@
+name: correctionId
+in: path
+required: true
+description: Time correction ID.
+schema:
+  type: string
+  minLength: 1
+  maxLength: 64
+example: tc-sam-w-1-fri

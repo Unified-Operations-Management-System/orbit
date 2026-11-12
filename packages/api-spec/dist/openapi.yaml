@@ -24,6 +24,8 @@ tags:
     description: The editable roles matrix (Organization and Access Management).
   - name: audit
     description: History of access changes (Organization and Access Management).
+  - name: hr
+    description: Schedules, time and attendance and time corrections (HR Management).
 paths:
   /health:
     get:
@@ -405,6 +407,438 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
         default:
           $ref: '#/components/responses/UnexpectedError'
+  /hr/clock:
+    get:
+      operationId: getClockStatus
+      summary: Get my clock status
+      description: |
+        The caller's punch status, today's shift, the clock-in window and hours this week and
+        pay period (UC-HR-01 step 2, UC-HR-02 step 2). Times come from the server clock.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Clock status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClockStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/clock/in:
+    post:
+      operationId: clockIn
+      summary: Clock in
+      description: |
+        Starts a punch now against today's shift (UC-HR-01). 409 if already clocked in, too early
+        for the shift's clock-in window, or the pay period is closed. A punch after the shift start
+        is marked late; a punch with no shift is flagged for review.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: The open punch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/clock/out:
+    post:
+      operationId: clockOut
+      summary: Clock out
+      description: |
+        Closes the caller's open punch now (UC-HR-02). 409 if not clocked in. A punch closed before
+        the shift ends is marked early out.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The closed punch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/shifts:
+    get:
+      operationId: listShifts
+      summary: List shifts
+      description: |
+        Shifts and time off overlapping [from, to), default this week and next (UC-HR-03).
+        Employees see their own published shifts; supervisors see their team, drafts included;
+        the owner and HR administrators see the company. At most 93 days.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Start of the range (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: End of the range (exclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: memberId
+          in: query
+          required: false
+          description: Only this employee.
+          schema:
+            type: string
+        - name: teamId
+          in: query
+          required: false
+          description: Only this team.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The schedule.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/shifts/{shiftId}:
+    parameters:
+      - $ref: '#/components/parameters/ShiftId'
+    get:
+      operationId: getShift
+      summary: Get a shift
+      description: |
+        One shift's hours, station, supervisor notes and changes (UC-HR-03 step 4). 404 if the
+        caller can't see it.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The shift.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/timecard:
+    get:
+      operationId: getTimecard
+      summary: Get a timecard
+      description: |
+        An employee's punches, missed shifts, correction requests and regular/overtime hours for a
+        pay period (UC-HR-04 steps 1-2). Defaults to the caller and the current period. 404 if the
+        caller can't see the employee or the period doesn't exist.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: payPeriodId
+          in: query
+          required: false
+          description: Pay period; default the current one.
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          required: false
+          description: Employee; default the caller.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The timecard.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timecard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/pay-periods:
+    get:
+      operationId: listPayPeriods
+      summary: List pay periods
+      description: |
+        The company's pay periods, oldest first.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pay periods.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayPeriod'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/time-corrections:
+    get:
+      operationId: listTimeCorrections
+      summary: List time corrections
+      description: |
+        Correction requests the caller may see, newest first: an employee's own, a supervisor's team,
+        or the whole company for the owner and HR administrators.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Only this status.
+          schema:
+            $ref: '#/components/schemas/TimeCorrectionStatus'
+        - name: memberId
+          in: query
+          required: false
+          description: Only this employee.
+          schema:
+            type: string
+        - name: assignedToMe
+          in: query
+          required: false
+          description: Only requests waiting on the caller.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Correction requests.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeCorrection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    post:
+      operationId: requestTimeCorrection
+      summary: Request a time correction
+      description: |
+        Saves a pending correction and routes it to the employee's supervisor, else HR (UC-HR-04).
+        The original punch is unchanged until approved. 422 for a missing reason, clockOut not after
+        clockIn, overlapping punches, or a closed period without acknowledgeAdjustment; 409 if the
+        punch already has a pending request.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestTimeCorrectionRequest'
+      responses:
+        '201':
+          description: The pending request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeCorrection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/time-corrections/{correctionId}/withdraw:
+    parameters:
+      - $ref: '#/components/parameters/CorrectionId'
+    post:
+      operationId: withdrawTimeCorrection
+      summary: Withdraw a time correction
+      description: |
+        Cancels the caller's own pending request (UC-HR-04 ext 3.b). 409 if it is no longer pending.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeCorrection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/time-corrections/{correctionId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/CorrectionId'
+    post:
+      operationId: approveTimeCorrection
+      summary: Approve a time correction
+      description: |
+        Writes the corrected times onto the punch, or adds the missing punch, in one transaction.
+        The team's supervisor, an HR administrator or the owner may approve; never the requester
+        (403). 409 if it is no longer pending.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeCorrection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/time-corrections/{correctionId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/CorrectionId'
+    post:
+      operationId: rejectTimeCorrection
+      summary: Reject a time correction
+      description: |
+        Rejects a pending request; the punch is unchanged. Same reviewers as approve.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeCorrection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/employees:
+    get:
+      operationId: listHrEmployees
+      summary: List employees with attendance
+      description: |
+        Employees the caller may see with their team, clock status, hours this pay period and pending
+        corrections. Filters combine; status defaults to Active. One query on the server.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: query
+          required: false
+          description: Only this team.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: Membership status; default Active.
+          schema:
+            $ref: '#/components/schemas/MemberStatus'
+        - name: role
+          in: query
+          required: false
+          description: Only this role.
+          schema:
+            $ref: '#/components/schemas/MemberRole'
+        - name: q
+          in: query
+          required: false
+          description: Name or email contains (case-insensitive).
+          schema:
+            type: string
+        - name: clockedIn
+          in: query
+          required: false
+          description: Only employees who are (true) or aren't (false) clocked in.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Employees, by name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrEmployeeList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 components:
   securitySchemes:
     bearerAuth:
@@ -724,6 +1158,473 @@ components:
         summary:
           type: string
           description: One line, e.g. "Invited casey@example.com as Employee".
+    TimeEntry:
+      title: TimeEntry
+      type: object
+      description: One punch pair (UC-HR-01, UC-HR-02). clockOut is absent while clocked in.
+      required:
+        - id
+        - memberId
+        - clockIn
+        - late
+        - earlyOut
+        - needsReview
+        - source
+        - hours
+      properties:
+        id:
+          type: string
+          examples:
+            - te-sam-w0-mon
+        memberId:
+          type: string
+          examples:
+            - m-3
+        shiftId:
+          type: string
+          description: The shift the punch was made against; absent for an unscheduled punch.
+        clockIn:
+          type: string
+          format: date-time
+        clockOut:
+          type: string
+          format: date-time
+        late:
+          type: boolean
+          description: Clocked in after the shift started.
+        earlyOut:
+          type: boolean
+          description: Clocked out before the shift ended.
+        needsReview:
+          type: boolean
+          description: Clocked in with no shift scheduled; the supervisor reviews it.
+        source:
+          type: string
+          enum:
+            - Clock
+            - Correction
+          description: Correction when an approved correction wrote these times.
+        hours:
+          type: number
+          description: Hours worked; 0 while clocked in.
+          examples:
+            - 8.07
+    Shift:
+      title: Shift
+      type: object
+      description: One scheduled shift for one employee (UC-HR-03).
+      required:
+        - id
+        - memberId
+        - memberName
+        - startsAt
+        - endsAt
+        - station
+        - notes
+        - published
+        - hours
+      properties:
+        id:
+          type: string
+          examples:
+            - sh-sam-w0-mon
+        memberId:
+          type: string
+          description: The employee (an OAM member).
+          examples:
+            - m-3
+        memberName:
+          type: string
+          examples:
+            - Sam Patel
+        teamId:
+          type: string
+          description: Team the shift belongs to.
+          examples:
+            - team-line-1
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        station:
+          type: string
+          examples:
+            - Packing Line 2
+        notes:
+          type: string
+          description: Notes from the supervisor; empty when there are none.
+        published:
+          type: boolean
+          description: False for a draft only supervisors and HR can see.
+        changeNote:
+          type: string
+          description: What changed after the shift was published; the app shows it as Updated.
+          examples:
+            - Moved from 7:00 AM to 11:00 AM
+        hours:
+          type: number
+          description: Scheduled hours.
+          examples:
+            - 8
+    PayPeriod:
+      title: PayPeriod
+      type: object
+      description: A pay period, from startsAt (inclusive) to endsAt (exclusive).
+      required:
+        - id
+        - startsAt
+        - endsAt
+        - payDate
+        - status
+      properties:
+        id:
+          type: string
+          examples:
+            - pp-now
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        payDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - Open
+            - Closed
+          description: Closed periods are paid and locked; corrections post as adjustments.
+    HrSettings:
+      title: HrSettings
+      type: object
+      description: The company's pay and time rules.
+      required:
+        - timezone
+        - clockInWindowMinutes
+        - overtimeWeeklyHours
+        - maxShiftHours
+      properties:
+        timezone:
+          type: string
+          examples:
+            - America/Toronto
+        clockInWindowMinutes:
+          type: integer
+          description: How early before a shift an employee may clock in.
+          examples:
+            - 15
+        overtimeWeeklyHours:
+          type: number
+          examples:
+            - 40
+        maxShiftHours:
+          type: number
+          description: An open punch longer than this probably missed a clock-out.
+          examples:
+            - 12
+    ClockStatus:
+      title: ClockStatus
+      type: object
+      description: What the Time Clock screen shows (UC-HR-01 step 2, UC-HR-02 step 2).
+      required:
+        - now
+        - clockedIn
+        - missedClockOut
+        - hoursThisWeek
+        - hoursThisPeriod
+        - settings
+      properties:
+        now:
+          type: string
+          format: date-time
+          description: The server's time; punches use it, not the phone's clock.
+        clockedIn:
+          type: boolean
+        openEntry:
+          $ref: '#/components/schemas/TimeEntry'
+        shift:
+          $ref: '#/components/schemas/Shift'
+        earliestClockIn:
+          type: string
+          format: date-time
+          description: When the clock-in window for the shift opens.
+        missedClockOut:
+          type: boolean
+          description: The open punch is longer than a shift can be; request a correction instead (UC-HR-02 ext 2.b).
+        hoursThisWeek:
+          type: number
+          description: Closed hours since Monday, before the current punch.
+        hoursThisPeriod:
+          type: number
+        payPeriod:
+          $ref: '#/components/schemas/PayPeriod'
+        settings:
+          $ref: '#/components/schemas/HrSettings'
+    TimeOff:
+      title: TimeOff
+      type: object
+      description: Leave shown on the schedule.
+      required:
+        - id
+        - memberId
+        - startsAt
+        - endsAt
+        - kind
+        - status
+        - note
+      properties:
+        id:
+          type: string
+          examples:
+            - to-sam-w1-wed
+        memberId:
+          type: string
+          examples:
+            - m-3
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          enum:
+            - Vacation
+            - Sick
+            - Personal
+        status:
+          type: string
+          enum:
+            - Pending
+            - Approved
+            - Rejected
+          x-enum-varnames:
+            - TimeOffPending
+            - TimeOffApproved
+            - TimeOffRejected
+        note:
+          type: string
+    Schedule:
+      title: Schedule
+      type: object
+      description: Shifts and time off in a date range.
+      required:
+        - from
+        - to
+        - shifts
+        - timeOff
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        shifts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shift'
+        timeOff:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeOff'
+    HrEmployee:
+      title: HrEmployee
+      type: object
+      description: An employee (OAM member) with their attendance this pay period.
+      required:
+        - id
+        - name
+        - email
+        - role
+        - status
+        - hoursThisPeriod
+        - pendingCorrections
+      properties:
+        id:
+          type: string
+          examples:
+            - m-3
+        name:
+          type: string
+          examples:
+            - Sam Patel
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/MemberRole'
+        status:
+          $ref: '#/components/schemas/MemberStatus'
+        teamId:
+          type: string
+        teamName:
+          type: string
+          examples:
+            - Production line 1
+        clockedInSince:
+          type: string
+          format: date-time
+          description: Present while the employee is clocked in.
+        hoursThisPeriod:
+          type: number
+        pendingCorrections:
+          type: integer
+    TimeCorrectionStatus:
+      title: TimeCorrectionStatus
+      type: string
+      enum:
+        - Pending
+        - Approved
+        - Rejected
+        - Withdrawn
+      x-enum-varnames:
+        - CorrectionPending
+        - CorrectionApproved
+        - CorrectionRejected
+        - CorrectionWithdrawn
+      description: Pending until a reviewer approves or rejects it, or the employee withdraws it.
+      examples:
+        - Pending
+    TimeCorrection:
+      title: TimeCorrection
+      type: object
+      description: A request to fix a punch or add a missing one (UC-HR-04).
+      required:
+        - id
+        - memberId
+        - memberName
+        - clockIn
+        - clockOut
+        - reason
+        - status
+        - adjustment
+        - submittedAt
+      properties:
+        id:
+          type: string
+          examples:
+            - tc-sam-w-1-fri
+        memberId:
+          type: string
+          examples:
+            - m-3
+        memberName:
+          type: string
+          examples:
+            - Sam Patel
+        timeEntryId:
+          type: string
+          description: The punch to fix; absent when adding a missing entry.
+        shiftId:
+          type: string
+        clockIn:
+          type: string
+          format: date-time
+        clockOut:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        status:
+          $ref: '#/components/schemas/TimeCorrectionStatus'
+        adjustment:
+          type: boolean
+          description: The work was in a closed pay period, so it posts as an adjustment.
+        assignedToId:
+          type: string
+          description: Who must review it, the team's supervisor or else an HR administrator.
+        reviewerId:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+    Timecard:
+      title: Timecard
+      type: object
+      description: One employee's pay period (UC-HR-04 steps 1-2).
+      required:
+        - member
+        - payPeriod
+        - entries
+        - missedShifts
+        - corrections
+        - hours
+        - regularHours
+        - overtimeHours
+      properties:
+        member:
+          $ref: '#/components/schemas/HrEmployee'
+        payPeriod:
+          $ref: '#/components/schemas/PayPeriod'
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeEntry'
+        missedShifts:
+          type: array
+          description: Shifts that have ended with no punch.
+          items:
+            $ref: '#/components/schemas/Shift'
+        corrections:
+          type: array
+          description: Pending requests and requests for work in this period.
+          items:
+            $ref: '#/components/schemas/TimeCorrection'
+        hours:
+          type: number
+        regularHours:
+          type: number
+        overtimeHours:
+          type: number
+    RequestTimeCorrectionRequest:
+      title: RequestTimeCorrectionRequest
+      type: object
+      description: Give timeEntryId to fix a punch, or shiftId to add a punch for a shift that has none.
+      required:
+        - clockIn
+        - clockOut
+        - reason
+      properties:
+        timeEntryId:
+          type: string
+        shiftId:
+          type: string
+        clockIn:
+          type: string
+          format: date-time
+        clockOut:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          examples:
+            - Forgot to clock out after the line stopped
+        acknowledgeAdjustment:
+          type: boolean
+          description: Required for a closed pay period; the employee accepts an adjustment in the current one.
+    HrEmployeeList:
+      title: HrEmployeeList
+      type: object
+      required:
+        - employees
+      properties:
+        payPeriod:
+          $ref: '#/components/schemas/PayPeriod'
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/HrEmployee'
   responses:
     UnexpectedError:
       description: Unexpected error.
@@ -809,3 +1710,23 @@ components:
         minLength: 1
         maxLength: 64
       example: m-5
+    ShiftId:
+      name: shiftId
+      in: path
+      required: true
+      description: Shift ID.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: sh-sam-w0-mon
+    CorrectionId:
+      name: correctionId
+      in: path
+      required: true
+      description: Time correction ID.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: tc-sam-w-1-fri

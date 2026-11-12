@@ -1,0 +1,9 @@
+name: shiftId
+in: path
+required: true
+description: Shift ID.
+schema:
+  type: string
+  minLength: 1
+  maxLength: 64
+example: sh-sam-w0-mon

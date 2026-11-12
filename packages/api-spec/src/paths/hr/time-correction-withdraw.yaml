@@ -1,0 +1,26 @@
+parameters:
+  - $ref: ../../components/parameters/CorrectionId.yaml
+
+post:
+  operationId: withdrawTimeCorrection
+  summary: Withdraw a time correction
+  description: |
+    Cancels the caller's own pending request (UC-HR-04 ext 3.b). 409 if it is no longer pending.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeCorrection.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

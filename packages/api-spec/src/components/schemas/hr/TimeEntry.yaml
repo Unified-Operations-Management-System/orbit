@@ -1,0 +1,37 @@
+title: TimeEntry
+type: object
+description: One punch pair (UC-HR-01, UC-HR-02). clockOut is absent while clocked in.
+required: [id, memberId, clockIn, late, earlyOut, needsReview, source, hours]
+properties:
+  id:
+    type: string
+    examples: [te-sam-w0-mon]
+  memberId:
+    type: string
+    examples: [m-3]
+  shiftId:
+    type: string
+    description: The shift the punch was made against; absent for an unscheduled punch.
+  clockIn:
+    type: string
+    format: date-time
+  clockOut:
+    type: string
+    format: date-time
+  late:
+    type: boolean
+    description: Clocked in after the shift started.
+  earlyOut:
+    type: boolean
+    description: Clocked out before the shift ended.
+  needsReview:
+    type: boolean
+    description: Clocked in with no shift scheduled; the supervisor reviews it.
+  source:
+    type: string
+    enum: [Clock, Correction]
+    description: Correction when an approved correction wrote these times.
+  hours:
+    type: number
+    description: Hours worked; 0 while clocked in.
+    examples: [8.07]

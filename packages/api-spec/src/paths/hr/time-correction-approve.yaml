@@ -1,0 +1,30 @@
+parameters:
+  - $ref: ../../components/parameters/CorrectionId.yaml
+
+post:
+  operationId: approveTimeCorrection
+  summary: Approve a time correction
+  description: |
+    Writes the corrected times onto the punch, or adds the missing punch, in one transaction.
+    The team's supervisor, an HR administrator or the owner may approve; never the requester
+    (403). 409 if it is no longer pending.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeCorrection.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

@@ -1,0 +1,78 @@
+get:
+  operationId: listTimeCorrections
+  summary: List time corrections
+  description: |
+    Correction requests the caller may see, newest first: an employee's own, a supervisor's team,
+    or the whole company for the owner and HR administrators.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: status
+      in: query
+      required: false
+      description: Only this status.
+      schema:
+        $ref: ../../components/schemas/hr/TimeCorrectionStatus.yaml
+    - name: memberId
+      in: query
+      required: false
+      description: Only this employee.
+      schema:
+        type: string
+    - name: assignedToMe
+      in: query
+      required: false
+      description: Only requests waiting on the caller.
+      schema:
+        type: boolean
+  responses:
+    "200":
+      description: Correction requests.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../../components/schemas/hr/TimeCorrection.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
+
+post:
+  operationId: requestTimeCorrection
+  summary: Request a time correction
+  description: |
+    Saves a pending correction and routes it to the employee's supervisor, else HR (UC-HR-04).
+    The original punch is unchanged until approved. 422 for a missing reason, clockOut not after
+    clockIn, overlapping punches, or a closed period without acknowledgeAdjustment; 409 if the
+    punch already has a pending request.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/hr/RequestTimeCorrectionRequest.yaml
+  responses:
+    "201":
+      description: The pending request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeCorrection.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

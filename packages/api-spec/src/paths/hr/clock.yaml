@@ -1,0 +1,20 @@
+get:
+  operationId: getClockStatus
+  summary: Get my clock status
+  description: |
+    The caller's punch status, today's shift, the clock-in window and hours this week and
+    pay period (UC-HR-01 step 2, UC-HR-02 step 2). Times come from the server clock.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: Clock status.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/ClockStatus.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

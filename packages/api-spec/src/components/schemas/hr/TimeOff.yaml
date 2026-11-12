@@ -1,0 +1,26 @@
+title: TimeOff
+type: object
+description: Leave shown on the schedule.
+required: [id, memberId, startsAt, endsAt, kind, status, note]
+properties:
+  id:
+    type: string
+    examples: [to-sam-w1-wed]
+  memberId:
+    type: string
+    examples: [m-3]
+  startsAt:
+    type: string
+    format: date-time
+  endsAt:
+    type: string
+    format: date-time
+  kind:
+    type: string
+    enum: [Vacation, Sick, Personal]
+  status:
+    type: string
+    enum: [Pending, Approved, Rejected]
+    x-enum-varnames: [TimeOffPending, TimeOffApproved, TimeOffRejected]
+  note:
+    type: string

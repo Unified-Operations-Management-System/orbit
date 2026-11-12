@@ -1,0 +1,10 @@
+title: HrEmployeeList
+type: object
+required: [employees]
+properties:
+  payPeriod:
+    $ref: PayPeriod.yaml
+  employees:
+    type: array
+    items:
+      $ref: HrEmployee.yaml

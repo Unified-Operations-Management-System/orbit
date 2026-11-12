@@ -1,0 +1,19 @@
+title: HrSettings
+type: object
+description: The company's pay and time rules.
+required: [timezone, clockInWindowMinutes, overtimeWeeklyHours, maxShiftHours]
+properties:
+  timezone:
+    type: string
+    examples: [America/Toronto]
+  clockInWindowMinutes:
+    type: integer
+    description: How early before a shift an employee may clock in.
+    examples: [15]
+  overtimeWeeklyHours:
+    type: number
+    examples: [40]
+  maxShiftHours:
+    type: number
+    description: An open punch longer than this probably missed a clock-out.
+    examples: [12]

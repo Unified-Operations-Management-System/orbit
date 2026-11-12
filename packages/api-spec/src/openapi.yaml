@@ -25,6 +25,8 @@ tags:
     description: The editable roles matrix (Organization and Access Management).
   - name: audit
     description: History of access changes (Organization and Access Management).
+  - name: hr
+    description: Schedules, time and attendance and time corrections (HR Management).
 
 paths:
   /health:
@@ -47,6 +49,30 @@ paths:
     $ref: paths/permissions/matrix.yaml
   /audit:
     $ref: paths/audit/collection.yaml
+  /hr/clock:
+    $ref: paths/hr/clock.yaml
+  /hr/clock/in:
+    $ref: paths/hr/clock-in.yaml
+  /hr/clock/out:
+    $ref: paths/hr/clock-out.yaml
+  /hr/shifts:
+    $ref: paths/hr/shifts.yaml
+  /hr/shifts/{shiftId}:
+    $ref: paths/hr/shift.yaml
+  /hr/timecard:
+    $ref: paths/hr/timecard.yaml
+  /hr/pay-periods:
+    $ref: paths/hr/pay-periods.yaml
+  /hr/time-corrections:
+    $ref: paths/hr/time-corrections.yaml
+  /hr/time-corrections/{correctionId}/withdraw:
+    $ref: paths/hr/time-correction-withdraw.yaml
+  /hr/time-corrections/{correctionId}/approve:
+    $ref: paths/hr/time-correction-approve.yaml
+  /hr/time-corrections/{correctionId}/reject:
+    $ref: paths/hr/time-correction-reject.yaml
+  /hr/employees:
+    $ref: paths/hr/employees.yaml
 
 components:
   securitySchemes:

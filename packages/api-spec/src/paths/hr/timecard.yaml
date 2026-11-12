@@ -1,0 +1,36 @@
+get:
+  operationId: getTimecard
+  summary: Get a timecard
+  description: |
+    An employee's punches, missed shifts, correction requests and regular/overtime hours for a
+    pay period (UC-HR-04 steps 1-2). Defaults to the caller and the current period. 404 if the
+    caller can't see the employee or the period doesn't exist.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: payPeriodId
+      in: query
+      required: false
+      description: Pay period; default the current one.
+      schema:
+        type: string
+    - name: memberId
+      in: query
+      required: false
+      description: Employee; default the caller.
+      schema:
+        type: string
+  responses:
+    "200":
+      description: The timecard.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/Timecard.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

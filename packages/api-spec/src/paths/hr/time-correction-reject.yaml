@@ -1,0 +1,28 @@
+parameters:
+  - $ref: ../../components/parameters/CorrectionId.yaml
+
+post:
+  operationId: rejectTimeCorrection
+  summary: Reject a time correction
+  description: |
+    Rejects a pending request; the punch is unchanged. Same reviewers as approve.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The request.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/TimeCorrection.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

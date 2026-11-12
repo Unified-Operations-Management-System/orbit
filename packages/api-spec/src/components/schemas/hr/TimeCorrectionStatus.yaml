@@ -1,0 +1,6 @@
+title: TimeCorrectionStatus
+type: string
+enum: [Pending, Approved, Rejected, Withdrawn]
+x-enum-varnames: [CorrectionPending, CorrectionApproved, CorrectionRejected, CorrectionWithdrawn]
+description: Pending until a reviewer approves or rejects it, or the employee withdraws it.
+examples: [Pending]

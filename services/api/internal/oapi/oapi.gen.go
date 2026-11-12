@@ -120,6 +120,24 @@ func (e MemberStatus) Valid() bool {
 	}
 }
 
+// Defines values for PayPeriodStatus.
+const (
+	Closed PayPeriodStatus = "Closed"
+	Open   PayPeriodStatus = "Open"
+)
+
+// Valid indicates whether the value is a known member of the PayPeriodStatus enum.
+func (e PayPeriodStatus) Valid() bool {
+	switch e {
+	case Closed:
+		return true
+	case Open:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PermissionAction.
 const (
 	CompanyEdit      PermissionAction = "company.edit"
@@ -147,6 +165,90 @@ func (e PermissionAction) Valid() bool {
 	case ShiftClock:
 		return true
 	case TimecardsApprove:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimeCorrectionStatus.
+const (
+	CorrectionApproved  TimeCorrectionStatus = "Approved"
+	CorrectionPending   TimeCorrectionStatus = "Pending"
+	CorrectionRejected  TimeCorrectionStatus = "Rejected"
+	CorrectionWithdrawn TimeCorrectionStatus = "Withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the TimeCorrectionStatus enum.
+func (e TimeCorrectionStatus) Valid() bool {
+	switch e {
+	case CorrectionApproved:
+		return true
+	case CorrectionPending:
+		return true
+	case CorrectionRejected:
+		return true
+	case CorrectionWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimeEntrySource.
+const (
+	Clock      TimeEntrySource = "Clock"
+	Correction TimeEntrySource = "Correction"
+)
+
+// Valid indicates whether the value is a known member of the TimeEntrySource enum.
+func (e TimeEntrySource) Valid() bool {
+	switch e {
+	case Clock:
+		return true
+	case Correction:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimeOffKind.
+const (
+	Personal TimeOffKind = "Personal"
+	Sick     TimeOffKind = "Sick"
+	Vacation TimeOffKind = "Vacation"
+)
+
+// Valid indicates whether the value is a known member of the TimeOffKind enum.
+func (e TimeOffKind) Valid() bool {
+	switch e {
+	case Personal:
+		return true
+	case Sick:
+		return true
+	case Vacation:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimeOffStatus.
+const (
+	TimeOffApproved TimeOffStatus = "Approved"
+	TimeOffPending  TimeOffStatus = "Pending"
+	TimeOffRejected TimeOffStatus = "Rejected"
+)
+
+// Valid indicates whether the value is a known member of the TimeOffStatus enum.
+func (e TimeOffStatus) Valid() bool {
+	switch e {
+	case TimeOffApproved:
+		return true
+	case TimeOffPending:
+		return true
+	case TimeOffRejected:
 		return true
 	default:
 		return false
@@ -195,6 +297,36 @@ type ChangeRoleRequest struct {
 	Role MemberRole `json:"role"`
 }
 
+// ClockStatus What the Time Clock screen shows (UC-HR-01 step 2, UC-HR-02 step 2).
+type ClockStatus struct {
+	ClockedIn bool `json:"clockedIn"`
+
+	// EarliestClockIn When the clock-in window for the shift opens.
+	EarliestClockIn *time.Time `json:"earliestClockIn,omitempty"`
+	HoursThisPeriod float32    `json:"hoursThisPeriod"`
+
+	// HoursThisWeek Closed hours since Monday, before the current punch.
+	HoursThisWeek float32 `json:"hoursThisWeek"`
+
+	// MissedClockOut The open punch is longer than a shift can be; request a correction instead (UC-HR-02 ext 2.b).
+	MissedClockOut bool `json:"missedClockOut"`
+
+	// Now The server's time; punches use it, not the phone's clock.
+	Now time.Time `json:"now"`
+
+	// OpenEntry One punch pair (UC-HR-01, UC-HR-02). clockOut is absent while clocked in.
+	OpenEntry *TimeEntry `json:"openEntry,omitempty"`
+
+	// PayPeriod A pay period, from startsAt (inclusive) to endsAt (exclusive).
+	PayPeriod *PayPeriod `json:"payPeriod,omitempty"`
+
+	// Settings The company's pay and time rules.
+	Settings HrSettings `json:"settings"`
+
+	// Shift One scheduled shift for one employee (UC-HR-03).
+	Shift *Shift `json:"shift,omitempty"`
+}
+
 // CreateTodoRequest defines model for CreateTodoRequest.
 type CreateTodoRequest struct {
 	// Title What needs doing.
@@ -224,6 +356,62 @@ type Health struct {
 
 // HealthStatus Always `ok` when the process can serve requests.
 type HealthStatus string
+
+// HrEmployee An employee (OAM member) with their attendance this pay period.
+type HrEmployee struct {
+	// ClockedInSince Present while the employee is clocked in.
+	ClockedInSince  *time.Time          `json:"clockedInSince,omitempty"`
+	Email           openapi_types.Email `json:"email"`
+	HoursThisPeriod float32             `json:"hoursThisPeriod"`
+
+	// Id Examples: m-3
+	Id string `json:"id"`
+
+	// Name Examples: Sam Patel
+	Name               string `json:"name"`
+	PendingCorrections int    `json:"pendingCorrections"`
+
+	// Role What the member may do in Orbit (see the roles matrix).
+	//
+	// Examples: Employee
+	Role MemberRole `json:"role"`
+
+	// Status Pending until approved; Deactivated members cannot sign in.
+	//
+	// Examples: Pending
+	Status MemberStatus `json:"status"`
+	TeamId *string      `json:"teamId,omitempty"`
+
+	// TeamName Examples: Production line 1
+	TeamName *string `json:"teamName,omitempty"`
+}
+
+// HrEmployeeList defines model for HrEmployeeList.
+type HrEmployeeList struct {
+	Employees []HrEmployee `json:"employees"`
+
+	// PayPeriod A pay period, from startsAt (inclusive) to endsAt (exclusive).
+	PayPeriod *PayPeriod `json:"payPeriod,omitempty"`
+}
+
+// HrSettings The company's pay and time rules.
+type HrSettings struct {
+	// ClockInWindowMinutes How early before a shift an employee may clock in.
+	//
+	// Examples: 15
+	ClockInWindowMinutes int `json:"clockInWindowMinutes"`
+
+	// MaxShiftHours An open punch longer than this probably missed a clock-out.
+	//
+	// Examples: 12
+	MaxShiftHours float32 `json:"maxShiftHours"`
+
+	// OvertimeWeeklyHours Examples: 40
+	OvertimeWeeklyHours float32 `json:"overtimeWeeklyHours"`
+
+	// Timezone Examples: America/Toronto
+	Timezone string `json:"timezone"`
+}
 
 // InviteMemberRequest defines model for InviteMemberRequest.
 type InviteMemberRequest struct {
@@ -292,6 +480,22 @@ type MemberRole string
 // Examples: Pending
 type MemberStatus string
 
+// PayPeriod A pay period, from startsAt (inclusive) to endsAt (exclusive).
+type PayPeriod struct {
+	EndsAt time.Time `json:"endsAt"`
+
+	// Id Examples: pp-now
+	Id       string             `json:"id"`
+	PayDate  openapi_types.Date `json:"payDate"`
+	StartsAt time.Time          `json:"startsAt"`
+
+	// Status Closed periods are paid and locked; corrections post as adjustments.
+	Status PayPeriodStatus `json:"status"`
+}
+
+// PayPeriodStatus Closed periods are paid and locked; corrections post as adjustments.
+type PayPeriodStatus string
+
 // PermissionAction A row of the roles matrix. members.manage covers invite, approve and deactivate.
 //
 // Examples: members.manage
@@ -341,6 +545,180 @@ type Problem struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// RequestTimeCorrectionRequest Give timeEntryId to fix a punch, or shiftId to add a punch for a shift that has none.
+type RequestTimeCorrectionRequest struct {
+	// AcknowledgeAdjustment Required for a closed pay period; the employee accepts an adjustment in the current one.
+	AcknowledgeAdjustment *bool     `json:"acknowledgeAdjustment,omitempty"`
+	ClockIn               time.Time `json:"clockIn"`
+	ClockOut              time.Time `json:"clockOut"`
+
+	// Reason Examples: Forgot to clock out after the line stopped
+	Reason      string  `json:"reason"`
+	ShiftId     *string `json:"shiftId,omitempty"`
+	TimeEntryId *string `json:"timeEntryId,omitempty"`
+}
+
+// Schedule Shifts and time off in a date range.
+type Schedule struct {
+	From    time.Time `json:"from"`
+	Shifts  []Shift   `json:"shifts"`
+	TimeOff []TimeOff `json:"timeOff"`
+	To      time.Time `json:"to"`
+}
+
+// Shift One scheduled shift for one employee (UC-HR-03).
+type Shift struct {
+	// ChangeNote What changed after the shift was published; the app shows it as Updated.
+	//
+	// Examples: Moved from 7:00 AM to 11:00 AM
+	ChangeNote *string   `json:"changeNote,omitempty"`
+	EndsAt     time.Time `json:"endsAt"`
+
+	// Hours Scheduled hours.
+	//
+	// Examples: 8
+	Hours float32 `json:"hours"`
+
+	// Id Examples: sh-sam-w0-mon
+	Id string `json:"id"`
+
+	// MemberId The employee (an OAM member).
+	//
+	// Examples: m-3
+	MemberId string `json:"memberId"`
+
+	// MemberName Examples: Sam Patel
+	MemberName string `json:"memberName"`
+
+	// Notes Notes from the supervisor; empty when there are none.
+	Notes string `json:"notes"`
+
+	// Published False for a draft only supervisors and HR can see.
+	Published bool      `json:"published"`
+	StartsAt  time.Time `json:"startsAt"`
+
+	// Station Examples: Packing Line 2
+	Station string `json:"station"`
+
+	// TeamId Team the shift belongs to.
+	//
+	// Examples: team-line-1
+	TeamId *string `json:"teamId,omitempty"`
+}
+
+// TimeCorrection A request to fix a punch or add a missing one (UC-HR-04).
+type TimeCorrection struct {
+	// Adjustment The work was in a closed pay period, so it posts as an adjustment.
+	Adjustment bool `json:"adjustment"`
+
+	// AssignedToId Who must review it, the team's supervisor or else an HR administrator.
+	AssignedToId *string   `json:"assignedToId,omitempty"`
+	ClockIn      time.Time `json:"clockIn"`
+	ClockOut     time.Time `json:"clockOut"`
+
+	// Id Examples: tc-sam-w-1-fri
+	Id string `json:"id"`
+
+	// MemberId Examples: m-3
+	MemberId string `json:"memberId"`
+
+	// MemberName Examples: Sam Patel
+	MemberName string     `json:"memberName"`
+	Reason     string     `json:"reason"`
+	ReviewedAt *time.Time `json:"reviewedAt,omitempty"`
+	ReviewerId *string    `json:"reviewerId,omitempty"`
+	ShiftId    *string    `json:"shiftId,omitempty"`
+
+	// Status Pending until a reviewer approves or rejects it, or the employee withdraws it.
+	//
+	// Examples: Pending
+	Status      TimeCorrectionStatus `json:"status"`
+	SubmittedAt time.Time            `json:"submittedAt"`
+
+	// TimeEntryId The punch to fix; absent when adding a missing entry.
+	TimeEntryId *string `json:"timeEntryId,omitempty"`
+}
+
+// TimeCorrectionStatus Pending until a reviewer approves or rejects it, or the employee withdraws it.
+//
+// Examples: Pending
+type TimeCorrectionStatus string
+
+// TimeEntry One punch pair (UC-HR-01, UC-HR-02). clockOut is absent while clocked in.
+type TimeEntry struct {
+	ClockIn  time.Time  `json:"clockIn"`
+	ClockOut *time.Time `json:"clockOut,omitempty"`
+
+	// EarlyOut Clocked out before the shift ended.
+	EarlyOut bool `json:"earlyOut"`
+
+	// Hours Hours worked; 0 while clocked in.
+	//
+	// Examples: 8.07
+	Hours float32 `json:"hours"`
+
+	// Id Examples: te-sam-w0-mon
+	Id string `json:"id"`
+
+	// Late Clocked in after the shift started.
+	Late bool `json:"late"`
+
+	// MemberId Examples: m-3
+	MemberId string `json:"memberId"`
+
+	// NeedsReview Clocked in with no shift scheduled; the supervisor reviews it.
+	NeedsReview bool `json:"needsReview"`
+
+	// ShiftId The shift the punch was made against; absent for an unscheduled punch.
+	ShiftId *string `json:"shiftId,omitempty"`
+
+	// Source Correction when an approved correction wrote these times.
+	Source TimeEntrySource `json:"source"`
+}
+
+// TimeEntrySource Correction when an approved correction wrote these times.
+type TimeEntrySource string
+
+// TimeOff Leave shown on the schedule.
+type TimeOff struct {
+	EndsAt time.Time `json:"endsAt"`
+
+	// Id Examples: to-sam-w1-wed
+	Id   string      `json:"id"`
+	Kind TimeOffKind `json:"kind"`
+
+	// MemberId Examples: m-3
+	MemberId string        `json:"memberId"`
+	Note     string        `json:"note"`
+	StartsAt time.Time     `json:"startsAt"`
+	Status   TimeOffStatus `json:"status"`
+}
+
+// TimeOffKind defines model for TimeOff.Kind.
+type TimeOffKind string
+
+// TimeOffStatus defines model for TimeOff.Status.
+type TimeOffStatus string
+
+// Timecard One employee's pay period (UC-HR-04 steps 1-2).
+type Timecard struct {
+	// Corrections Pending requests and requests for work in this period.
+	Corrections []TimeCorrection `json:"corrections"`
+	Entries     []TimeEntry      `json:"entries"`
+	Hours       float32          `json:"hours"`
+
+	// Member An employee (OAM member) with their attendance this pay period.
+	Member HrEmployee `json:"member"`
+
+	// MissedShifts Shifts that have ended with no punch.
+	MissedShifts  []Shift `json:"missedShifts"`
+	OvertimeHours float32 `json:"overtimeHours"`
+
+	// PayPeriod A pay period, from startsAt (inclusive) to endsAt (exclusive).
+	PayPeriod    PayPeriod `json:"payPeriod"`
+	RegularHours float32   `json:"regularHours"`
+}
+
 // Todo defines model for Todo.
 type Todo struct {
 	// CreatedAt When it was created (UTC).
@@ -366,8 +744,14 @@ type UpdateTodoRequest struct {
 	Done bool `json:"done"`
 }
 
+// CorrectionId defines model for CorrectionId.
+type CorrectionId = string
+
 // MemberId defines model for MemberId.
 type MemberId = string
+
+// ShiftId defines model for ShiftId.
+type ShiftId = string
 
 // TodoId defines model for TodoId.
 type TodoId = int64
@@ -396,6 +780,63 @@ type ListAuditEntriesParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListHrEmployeesParams defines parameters for ListHrEmployees.
+type ListHrEmployeesParams struct {
+	// TeamId Only this team.
+	TeamId *string `form:"teamId,omitempty" json:"teamId,omitempty"`
+
+	// Status Membership status; default Active.
+	Status *MemberStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Role Only this role.
+	Role *MemberRole `form:"role,omitempty" json:"role,omitempty"`
+
+	// Q Name or email contains (case-insensitive).
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// ClockedIn Only employees who are (true) or aren't (false) clocked in.
+	ClockedIn *bool `form:"clockedIn,omitempty" json:"clockedIn,omitempty"`
+}
+
+// ListShiftsParams defines parameters for ListShifts.
+type ListShiftsParams struct {
+	// From Start of the range (inclusive).
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End of the range (exclusive).
+	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+
+	// MemberId Only this employee.
+	MemberId *string `form:"memberId,omitempty" json:"memberId,omitempty"`
+
+	// TeamId Only this team.
+	TeamId *string `form:"teamId,omitempty" json:"teamId,omitempty"`
+}
+
+// ListTimeCorrectionsParams defines parameters for ListTimeCorrections.
+type ListTimeCorrectionsParams struct {
+	// Status Only this status.
+	Status *TimeCorrectionStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// MemberId Only this employee.
+	MemberId *string `form:"memberId,omitempty" json:"memberId,omitempty"`
+
+	// AssignedToMe Only requests waiting on the caller.
+	AssignedToMe *bool `form:"assignedToMe,omitempty" json:"assignedToMe,omitempty"`
+}
+
+// GetTimecardParams defines parameters for GetTimecard.
+type GetTimecardParams struct {
+	// PayPeriodId Pay period; default the current one.
+	PayPeriodId *string `form:"payPeriodId,omitempty" json:"payPeriodId,omitempty"`
+
+	// MemberId Employee; default the caller.
+	MemberId *string `form:"memberId,omitempty" json:"memberId,omitempty"`
+}
+
+// RequestTimeCorrectionJSONRequestBody defines body for RequestTimeCorrection for application/json ContentType.
+type RequestTimeCorrectionJSONRequestBody = RequestTimeCorrectionRequest
+
 // InviteMemberJSONRequestBody defines body for InviteMember for application/json ContentType.
 type InviteMemberJSONRequestBody = InviteMemberRequest
 
@@ -422,6 +863,45 @@ type ServerInterface interface {
 	// GetHealth Health check
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// GetClockStatus Get my clock status
+	// (GET /hr/clock)
+	GetClockStatus(w http.ResponseWriter, r *http.Request)
+	// ClockIn Clock in
+	// (POST /hr/clock/in)
+	ClockIn(w http.ResponseWriter, r *http.Request)
+	// ClockOut Clock out
+	// (POST /hr/clock/out)
+	ClockOut(w http.ResponseWriter, r *http.Request)
+	// ListHrEmployees List employees with attendance
+	// (GET /hr/employees)
+	ListHrEmployees(w http.ResponseWriter, r *http.Request, params ListHrEmployeesParams)
+	// ListPayPeriods List pay periods
+	// (GET /hr/pay-periods)
+	ListPayPeriods(w http.ResponseWriter, r *http.Request)
+	// ListShifts List shifts
+	// (GET /hr/shifts)
+	ListShifts(w http.ResponseWriter, r *http.Request, params ListShiftsParams)
+	// GetShift Get a shift
+	// (GET /hr/shifts/{shiftId})
+	GetShift(w http.ResponseWriter, r *http.Request, shiftId ShiftId)
+	// ListTimeCorrections List time corrections
+	// (GET /hr/time-corrections)
+	ListTimeCorrections(w http.ResponseWriter, r *http.Request, params ListTimeCorrectionsParams)
+	// RequestTimeCorrection Request a time correction
+	// (POST /hr/time-corrections)
+	RequestTimeCorrection(w http.ResponseWriter, r *http.Request)
+	// ApproveTimeCorrection Approve a time correction
+	// (POST /hr/time-corrections/{correctionId}/approve)
+	ApproveTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId)
+	// RejectTimeCorrection Reject a time correction
+	// (POST /hr/time-corrections/{correctionId}/reject)
+	RejectTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId)
+	// WithdrawTimeCorrection Withdraw a time correction
+	// (POST /hr/time-corrections/{correctionId}/withdraw)
+	WithdrawTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId)
+	// GetTimecard Get a timecard
+	// (GET /hr/timecard)
+	GetTimecard(w http.ResponseWriter, r *http.Request, params GetTimecardParams)
 	// ListMembers List members
 	// (GET /members)
 	ListMembers(w http.ResponseWriter, r *http.Request)
@@ -518,6 +998,442 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClockStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetClockStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClockStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClockIn operation middleware
+func (siw *ServerInterfaceWrapper) ClockIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClockIn(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClockOut operation middleware
+func (siw *ServerInterfaceWrapper) ClockOut(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClockOut(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListHrEmployees operation middleware
+func (siw *ServerInterfaceWrapper) ListHrEmployees(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListHrEmployeesParams
+
+	// ------------- Optional query parameter "teamId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "teamId", r.URL.Query(), &params.TeamId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "teamId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "role", r.URL.Query(), &params.Role, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "role"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "role", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "clockedIn" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "clockedIn", r.URL.Query(), &params.ClockedIn, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "clockedIn"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "clockedIn", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHrEmployees(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPayPeriods operation middleware
+func (siw *ServerInterfaceWrapper) ListPayPeriods(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPayPeriods(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListShifts operation middleware
+func (siw *ServerInterfaceWrapper) ListShifts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListShiftsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "memberId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "memberId", r.URL.Query(), &params.MemberId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "memberId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "teamId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "teamId", r.URL.Query(), &params.TeamId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "teamId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListShifts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetShift operation middleware
+func (siw *ServerInterfaceWrapper) GetShift(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "shiftId" -------------
+	var shiftId ShiftId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shiftId", r.PathValue("shiftId"), &shiftId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shiftId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetShift(w, r, shiftId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTimeCorrections operation middleware
+func (siw *ServerInterfaceWrapper) ListTimeCorrections(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTimeCorrectionsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "memberId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "memberId", r.URL.Query(), &params.MemberId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "memberId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "assignedToMe" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "assignedToMe", r.URL.Query(), &params.AssignedToMe, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "assignedToMe"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "assignedToMe", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTimeCorrections(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestTimeCorrection operation middleware
+func (siw *ServerInterfaceWrapper) RequestTimeCorrection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestTimeCorrection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApproveTimeCorrection operation middleware
+func (siw *ServerInterfaceWrapper) ApproveTimeCorrection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "correctionId" -------------
+	var correctionId CorrectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "correctionId", r.PathValue("correctionId"), &correctionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "correctionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApproveTimeCorrection(w, r, correctionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RejectTimeCorrection operation middleware
+func (siw *ServerInterfaceWrapper) RejectTimeCorrection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "correctionId" -------------
+	var correctionId CorrectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "correctionId", r.PathValue("correctionId"), &correctionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "correctionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RejectTimeCorrection(w, r, correctionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WithdrawTimeCorrection operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawTimeCorrection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "correctionId" -------------
+	var correctionId CorrectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "correctionId", r.PathValue("correctionId"), &correctionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "correctionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawTimeCorrection(w, r, correctionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTimecard operation middleware
+func (siw *ServerInterfaceWrapper) GetTimecard(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTimecardParams
+
+	// ------------- Optional query parameter "payPeriodId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "payPeriodId", r.URL.Query(), &params.PayPeriodId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "payPeriodId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "payPeriodId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "memberId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "memberId", r.URL.Query(), &params.MemberId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "memberId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTimecard(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -875,6 +1791,19 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/permissions", wrapper.GetPermissions)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/permissions", wrapper.UpdatePermissions)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/audit", wrapper.ListAuditEntries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/clock", wrapper.GetClockStatus)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/clock/in", wrapper.ClockIn)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/clock/out", wrapper.ClockOut)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/shifts", wrapper.ListShifts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/shifts/{shiftId}", wrapper.GetShift)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/timecard", wrapper.GetTimecard)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/pay-periods", wrapper.ListPayPeriods)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/time-corrections", wrapper.ListTimeCorrections)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/time-corrections", wrapper.RequestTimeCorrection)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/time-corrections/{correctionId}/withdraw", wrapper.WithdrawTimeCorrection)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/time-corrections/{correctionId}/approve", wrapper.ApproveTimeCorrection)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hr/time-corrections/{correctionId}/reject", wrapper.RejectTimeCorrection)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/hr/employees", wrapper.ListHrEmployees)
 
 	return m
 }
@@ -1059,6 +1988,1005 @@ type GetHealthdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetHealthdefaultApplicationProblemPlusJSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetClockStatusRequestObject struct {
+}
+
+type GetClockStatusResponseObject interface {
+	VisitGetClockStatusResponse(w http.ResponseWriter) error
+}
+
+type GetClockStatus200JSONResponse ClockStatus
+
+func (response GetClockStatus200JSONResponse) VisitGetClockStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetClockStatus401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetClockStatus401ApplicationProblemPlusJSONResponse) VisitGetClockStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetClockStatusdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetClockStatusdefaultApplicationProblemPlusJSONResponse) VisitGetClockStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockInRequestObject struct {
+}
+
+type ClockInResponseObject interface {
+	VisitClockInResponse(w http.ResponseWriter) error
+}
+
+type ClockIn201JSONResponse TimeEntry
+
+func (response ClockIn201JSONResponse) VisitClockInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockIn401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ClockIn401ApplicationProblemPlusJSONResponse) VisitClockInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockIn409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ClockIn409ApplicationProblemPlusJSONResponse) VisitClockInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockIndefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ClockIndefaultApplicationProblemPlusJSONResponse) VisitClockInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockOutRequestObject struct {
+}
+
+type ClockOutResponseObject interface {
+	VisitClockOutResponse(w http.ResponseWriter) error
+}
+
+type ClockOut200JSONResponse TimeEntry
+
+func (response ClockOut200JSONResponse) VisitClockOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockOut401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ClockOut401ApplicationProblemPlusJSONResponse) VisitClockOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockOut409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ClockOut409ApplicationProblemPlusJSONResponse) VisitClockOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClockOutdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ClockOutdefaultApplicationProblemPlusJSONResponse) VisitClockOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHrEmployeesRequestObject struct {
+	Params ListHrEmployeesParams
+}
+
+type ListHrEmployeesResponseObject interface {
+	VisitListHrEmployeesResponse(w http.ResponseWriter) error
+}
+
+type ListHrEmployees200JSONResponse HrEmployeeList
+
+func (response ListHrEmployees200JSONResponse) VisitListHrEmployeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHrEmployees401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListHrEmployees401ApplicationProblemPlusJSONResponse) VisitListHrEmployeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHrEmployees422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response ListHrEmployees422ApplicationProblemPlusJSONResponse) VisitListHrEmployeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHrEmployeesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListHrEmployeesdefaultApplicationProblemPlusJSONResponse) VisitListHrEmployeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayPeriodsRequestObject struct {
+}
+
+type ListPayPeriodsResponseObject interface {
+	VisitListPayPeriodsResponse(w http.ResponseWriter) error
+}
+
+type ListPayPeriods200JSONResponse []PayPeriod
+
+func (response ListPayPeriods200JSONResponse) VisitListPayPeriodsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayPeriods401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPayPeriods401ApplicationProblemPlusJSONResponse) VisitListPayPeriodsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayPeriodsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListPayPeriodsdefaultApplicationProblemPlusJSONResponse) VisitListPayPeriodsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShiftsRequestObject struct {
+	Params ListShiftsParams
+}
+
+type ListShiftsResponseObject interface {
+	VisitListShiftsResponse(w http.ResponseWriter) error
+}
+
+type ListShifts200JSONResponse Schedule
+
+func (response ListShifts200JSONResponse) VisitListShiftsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShifts401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListShifts401ApplicationProblemPlusJSONResponse) VisitListShiftsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShifts422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response ListShifts422ApplicationProblemPlusJSONResponse) VisitListShiftsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShiftsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListShiftsdefaultApplicationProblemPlusJSONResponse) VisitListShiftsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetShiftRequestObject struct {
+	ShiftId ShiftId `json:"shiftId"`
+}
+
+type GetShiftResponseObject interface {
+	VisitGetShiftResponse(w http.ResponseWriter) error
+}
+
+type GetShift200JSONResponse Shift
+
+func (response GetShift200JSONResponse) VisitGetShiftResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetShift401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetShift401ApplicationProblemPlusJSONResponse) VisitGetShiftResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetShift404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetShift404ApplicationProblemPlusJSONResponse) VisitGetShiftResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetShiftdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetShiftdefaultApplicationProblemPlusJSONResponse) VisitGetShiftResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTimeCorrectionsRequestObject struct {
+	Params ListTimeCorrectionsParams
+}
+
+type ListTimeCorrectionsResponseObject interface {
+	VisitListTimeCorrectionsResponse(w http.ResponseWriter) error
+}
+
+type ListTimeCorrections200JSONResponse []TimeCorrection
+
+func (response ListTimeCorrections200JSONResponse) VisitListTimeCorrectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTimeCorrections401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListTimeCorrections401ApplicationProblemPlusJSONResponse) VisitListTimeCorrectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTimeCorrections422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response ListTimeCorrections422ApplicationProblemPlusJSONResponse) VisitListTimeCorrectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTimeCorrectionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListTimeCorrectionsdefaultApplicationProblemPlusJSONResponse) VisitListTimeCorrectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrectionRequestObject struct {
+	Body *RequestTimeCorrectionJSONRequestBody
+}
+
+type RequestTimeCorrectionResponseObject interface {
+	VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error
+}
+
+type RequestTimeCorrection201JSONResponse TimeCorrection
+
+func (response RequestTimeCorrection201JSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RequestTimeCorrection401ApplicationProblemPlusJSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RequestTimeCorrection404ApplicationProblemPlusJSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrection409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RequestTimeCorrection409ApplicationProblemPlusJSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrection422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response RequestTimeCorrection422ApplicationProblemPlusJSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestTimeCorrectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RequestTimeCorrectiondefaultApplicationProblemPlusJSONResponse) VisitRequestTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrectionRequestObject struct {
+	CorrectionId CorrectionId `json:"correctionId"`
+}
+
+type ApproveTimeCorrectionResponseObject interface {
+	VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error
+}
+
+type ApproveTimeCorrection200JSONResponse TimeCorrection
+
+func (response ApproveTimeCorrection200JSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveTimeCorrection401ApplicationProblemPlusJSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveTimeCorrection403ApplicationProblemPlusJSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveTimeCorrection404ApplicationProblemPlusJSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrection409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveTimeCorrection409ApplicationProblemPlusJSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApproveTimeCorrectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ApproveTimeCorrectiondefaultApplicationProblemPlusJSONResponse) VisitApproveTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrectionRequestObject struct {
+	CorrectionId CorrectionId `json:"correctionId"`
+}
+
+type RejectTimeCorrectionResponseObject interface {
+	VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error
+}
+
+type RejectTimeCorrection200JSONResponse TimeCorrection
+
+func (response RejectTimeCorrection200JSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RejectTimeCorrection401ApplicationProblemPlusJSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RejectTimeCorrection403ApplicationProblemPlusJSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RejectTimeCorrection404ApplicationProblemPlusJSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrection409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RejectTimeCorrection409ApplicationProblemPlusJSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RejectTimeCorrectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RejectTimeCorrectiondefaultApplicationProblemPlusJSONResponse) VisitRejectTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawTimeCorrectionRequestObject struct {
+	CorrectionId CorrectionId `json:"correctionId"`
+}
+
+type WithdrawTimeCorrectionResponseObject interface {
+	VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error
+}
+
+type WithdrawTimeCorrection200JSONResponse TimeCorrection
+
+func (response WithdrawTimeCorrection200JSONResponse) VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawTimeCorrection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawTimeCorrection401ApplicationProblemPlusJSONResponse) VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawTimeCorrection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawTimeCorrection404ApplicationProblemPlusJSONResponse) VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawTimeCorrection409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawTimeCorrection409ApplicationProblemPlusJSONResponse) VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawTimeCorrectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response WithdrawTimeCorrectiondefaultApplicationProblemPlusJSONResponse) VisitWithdrawTimeCorrectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTimecardRequestObject struct {
+	Params GetTimecardParams
+}
+
+type GetTimecardResponseObject interface {
+	VisitGetTimecardResponse(w http.ResponseWriter) error
+}
+
+type GetTimecard200JSONResponse Timecard
+
+func (response GetTimecard200JSONResponse) VisitGetTimecardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTimecard401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetTimecard401ApplicationProblemPlusJSONResponse) VisitGetTimecardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTimecard404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetTimecard404ApplicationProblemPlusJSONResponse) VisitGetTimecardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTimecarddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetTimecarddefaultApplicationProblemPlusJSONResponse) VisitGetTimecardResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1983,6 +3911,45 @@ type StrictServerInterface interface {
 	// GetHealth Health check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// GetClockStatus Get my clock status
+	// (GET /hr/clock)
+	GetClockStatus(ctx context.Context, request GetClockStatusRequestObject) (GetClockStatusResponseObject, error)
+	// ClockIn Clock in
+	// (POST /hr/clock/in)
+	ClockIn(ctx context.Context, request ClockInRequestObject) (ClockInResponseObject, error)
+	// ClockOut Clock out
+	// (POST /hr/clock/out)
+	ClockOut(ctx context.Context, request ClockOutRequestObject) (ClockOutResponseObject, error)
+	// ListHrEmployees List employees with attendance
+	// (GET /hr/employees)
+	ListHrEmployees(ctx context.Context, request ListHrEmployeesRequestObject) (ListHrEmployeesResponseObject, error)
+	// ListPayPeriods List pay periods
+	// (GET /hr/pay-periods)
+	ListPayPeriods(ctx context.Context, request ListPayPeriodsRequestObject) (ListPayPeriodsResponseObject, error)
+	// ListShifts List shifts
+	// (GET /hr/shifts)
+	ListShifts(ctx context.Context, request ListShiftsRequestObject) (ListShiftsResponseObject, error)
+	// GetShift Get a shift
+	// (GET /hr/shifts/{shiftId})
+	GetShift(ctx context.Context, request GetShiftRequestObject) (GetShiftResponseObject, error)
+	// ListTimeCorrections List time corrections
+	// (GET /hr/time-corrections)
+	ListTimeCorrections(ctx context.Context, request ListTimeCorrectionsRequestObject) (ListTimeCorrectionsResponseObject, error)
+	// RequestTimeCorrection Request a time correction
+	// (POST /hr/time-corrections)
+	RequestTimeCorrection(ctx context.Context, request RequestTimeCorrectionRequestObject) (RequestTimeCorrectionResponseObject, error)
+	// ApproveTimeCorrection Approve a time correction
+	// (POST /hr/time-corrections/{correctionId}/approve)
+	ApproveTimeCorrection(ctx context.Context, request ApproveTimeCorrectionRequestObject) (ApproveTimeCorrectionResponseObject, error)
+	// RejectTimeCorrection Reject a time correction
+	// (POST /hr/time-corrections/{correctionId}/reject)
+	RejectTimeCorrection(ctx context.Context, request RejectTimeCorrectionRequestObject) (RejectTimeCorrectionResponseObject, error)
+	// WithdrawTimeCorrection Withdraw a time correction
+	// (POST /hr/time-corrections/{correctionId}/withdraw)
+	WithdrawTimeCorrection(ctx context.Context, request WithdrawTimeCorrectionRequestObject) (WithdrawTimeCorrectionResponseObject, error)
+	// GetTimecard Get a timecard
+	// (GET /hr/timecard)
+	GetTimecard(ctx context.Context, request GetTimecardRequestObject) (GetTimecardResponseObject, error)
 	// ListMembers List members
 	// (GET /members)
 	ListMembers(ctx context.Context, request ListMembersRequestObject) (ListMembersResponseObject, error)
@@ -2124,6 +4091,341 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetClockStatus operation middleware
+func (sh *strictHandler) GetClockStatus(w http.ResponseWriter, r *http.Request) {
+	var request GetClockStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetClockStatus(ctx, request.(GetClockStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetClockStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetClockStatusResponseObject); ok {
+		if err := validResponse.VisitGetClockStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ClockIn operation middleware
+func (sh *strictHandler) ClockIn(w http.ResponseWriter, r *http.Request) {
+	var request ClockInRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClockIn(ctx, request.(ClockInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClockIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClockInResponseObject); ok {
+		if err := validResponse.VisitClockInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ClockOut operation middleware
+func (sh *strictHandler) ClockOut(w http.ResponseWriter, r *http.Request) {
+	var request ClockOutRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClockOut(ctx, request.(ClockOutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClockOut")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClockOutResponseObject); ok {
+		if err := validResponse.VisitClockOutResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListHrEmployees operation middleware
+func (sh *strictHandler) ListHrEmployees(w http.ResponseWriter, r *http.Request, params ListHrEmployeesParams) {
+	var request ListHrEmployeesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHrEmployees(ctx, request.(ListHrEmployeesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHrEmployees")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHrEmployeesResponseObject); ok {
+		if err := validResponse.VisitListHrEmployeesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPayPeriods operation middleware
+func (sh *strictHandler) ListPayPeriods(w http.ResponseWriter, r *http.Request) {
+	var request ListPayPeriodsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPayPeriods(ctx, request.(ListPayPeriodsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPayPeriods")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPayPeriodsResponseObject); ok {
+		if err := validResponse.VisitListPayPeriodsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListShifts operation middleware
+func (sh *strictHandler) ListShifts(w http.ResponseWriter, r *http.Request, params ListShiftsParams) {
+	var request ListShiftsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListShifts(ctx, request.(ListShiftsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListShifts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListShiftsResponseObject); ok {
+		if err := validResponse.VisitListShiftsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetShift operation middleware
+func (sh *strictHandler) GetShift(w http.ResponseWriter, r *http.Request, shiftId ShiftId) {
+	var request GetShiftRequestObject
+
+	request.ShiftId = shiftId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetShift(ctx, request.(GetShiftRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetShift")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetShiftResponseObject); ok {
+		if err := validResponse.VisitGetShiftResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTimeCorrections operation middleware
+func (sh *strictHandler) ListTimeCorrections(w http.ResponseWriter, r *http.Request, params ListTimeCorrectionsParams) {
+	var request ListTimeCorrectionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTimeCorrections(ctx, request.(ListTimeCorrectionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTimeCorrections")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTimeCorrectionsResponseObject); ok {
+		if err := validResponse.VisitListTimeCorrectionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RequestTimeCorrection operation middleware
+func (sh *strictHandler) RequestTimeCorrection(w http.ResponseWriter, r *http.Request) {
+	var request RequestTimeCorrectionRequestObject
+
+	var body RequestTimeCorrectionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestTimeCorrection(ctx, request.(RequestTimeCorrectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestTimeCorrection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RequestTimeCorrectionResponseObject); ok {
+		if err := validResponse.VisitRequestTimeCorrectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ApproveTimeCorrection operation middleware
+func (sh *strictHandler) ApproveTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId) {
+	var request ApproveTimeCorrectionRequestObject
+
+	request.CorrectionId = correctionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ApproveTimeCorrection(ctx, request.(ApproveTimeCorrectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApproveTimeCorrection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ApproveTimeCorrectionResponseObject); ok {
+		if err := validResponse.VisitApproveTimeCorrectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RejectTimeCorrection operation middleware
+func (sh *strictHandler) RejectTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId) {
+	var request RejectTimeCorrectionRequestObject
+
+	request.CorrectionId = correctionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RejectTimeCorrection(ctx, request.(RejectTimeCorrectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RejectTimeCorrection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RejectTimeCorrectionResponseObject); ok {
+		if err := validResponse.VisitRejectTimeCorrectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WithdrawTimeCorrection operation middleware
+func (sh *strictHandler) WithdrawTimeCorrection(w http.ResponseWriter, r *http.Request, correctionId CorrectionId) {
+	var request WithdrawTimeCorrectionRequestObject
+
+	request.CorrectionId = correctionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WithdrawTimeCorrection(ctx, request.(WithdrawTimeCorrectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WithdrawTimeCorrection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WithdrawTimeCorrectionResponseObject); ok {
+		if err := validResponse.VisitWithdrawTimeCorrectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTimecard operation middleware
+func (sh *strictHandler) GetTimecard(w http.ResponseWriter, r *http.Request, params GetTimecardParams) {
+	var request GetTimecardRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTimecard(ctx, request.(GetTimecardRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTimecard")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTimecardResponseObject); ok {
+		if err := validResponse.VisitGetTimecardResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2445,77 +4747,136 @@ func (sh *strictHandler) UpdateTodo(w http.ResponseWriter, r *http.Request, id T
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"hAs1Pd9Nm2/4wtWdD2cDuywkdmH9/wEA",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
