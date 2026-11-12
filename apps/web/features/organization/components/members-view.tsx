@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { colors } from "@orbit/design-tokens";
 import type { Problem } from "@orbit/api-client";
-import { Alert, Button, Dialog, Input, Select, Shape } from "@/components/ui";
+import { Alert, Button, Dialog, Input, Panel, Select, Shape, stickyHeadCell } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
 import { memberRoles, type Member, type MemberRole, type MemberStatus } from "../mock-data";
@@ -90,11 +90,7 @@ export function MembersView() {
   };
 
   return (
-    <section aria-label="Members">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[22px] font-bold">Members</h2>
-        <Button onClick={() => setInviting(true)}>Invite member</Button>
-      </div>
+    <Panel title="Members" className="flex-1" actions={<Button onClick={() => setInviting(true)}>Invite member</Button>}>
       {loadError ? (
         <div className="mb-3">
           <Alert tone="error" title={loadError} />
@@ -105,13 +101,13 @@ export function MembersView() {
           <Alert tone="success" title={notice} />
         </div>
       ) : null}
-      <table className="w-full border-t-2 border-ink text-left">
+      <table className="w-full text-left">
         <thead>
           <tr className="text-xs uppercase tracking-[0.12em] text-muted">
-            <th className="py-2 font-bold">Name</th>
-            <th className="py-2 font-bold">Role</th>
-            <th className="py-2 font-bold">Status</th>
-            <th className="py-2" />
+            <th className={`py-2 font-bold ${stickyHeadCell}`}>Name</th>
+            <th className={`py-2 font-bold ${stickyHeadCell}`}>Role</th>
+            <th className={`py-2 font-bold ${stickyHeadCell}`}>Status</th>
+            <th className={`py-2 ${stickyHeadCell}`} />
           </tr>
         </thead>
         <tbody>
@@ -172,6 +168,6 @@ export function MembersView() {
           onConfirm={() => void deactivate(deactivateTarget)}
         />
       ) : null}
-    </section>
+    </Panel>
   );
 }

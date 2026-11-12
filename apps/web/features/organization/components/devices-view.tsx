@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Button, DataTable, Dialog, Input, Select } from "@/components/ui";
+import { Badge, Button, DataTable, Dialog, Input, Panel, Select } from "@/components/ui";
 import { deviceTeams, deviceTypes, initialDevices, pairingCode, type Device, type DeviceType } from "../devices-data";
 
 export function DevicesView() {
@@ -40,12 +40,9 @@ export function DevicesView() {
   };
 
   return (
-    <section aria-label="Devices">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[22px] font-bold">Devices</h2>
-        <Button onClick={() => setRegistering(true)}>Register device</Button>
-      </div>
+    <Panel title="Devices" className="flex-1" actions={<Button onClick={() => setRegistering(true)}>Register device</Button>}>
       <DataTable
+        stickyHeader
         rowKey={(d) => d.id}
         rows={devices}
         columns={[
@@ -125,6 +122,6 @@ export function DevicesView() {
           <Button onClick={revoke}>Revoke device</Button>
         </div>
       </Dialog>
-    </section>
+    </Panel>
   );
 }

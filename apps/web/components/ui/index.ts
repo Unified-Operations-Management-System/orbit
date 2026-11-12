@@ -13,7 +13,7 @@ export { Select } from "./select";
 export { Textarea } from "./textarea";
 export { Checkbox } from "./checkbox";
 export { Tabs } from "./tabs";
-export { DataTable } from "./data-table";
+export { DataTable, stickyHeadCell } from "./data-table";
 export { ProgressBar } from "./progress-bar";
 export { BarChart } from "./bar-chart";
 export { Badge } from "./badge";

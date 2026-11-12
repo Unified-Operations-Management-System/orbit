@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DateInput, EmptyState, Pagination, SearchInput, Select, Timeline } from "@/components/ui";
+import { DateInput, EmptyState, Pagination, Panel, SearchInput, Select, Timeline } from "@/components/ui";
 import { actionLabels, auditActors, auditEntries, type AuditAction } from "../audit-data";
 
 const PAGE_SIZE = 8;
@@ -40,43 +40,47 @@ export function AuditView() {
   const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   return (
-    <section aria-label="Audit history">
-      <h2 className="mb-3 text-[22px] font-bold">Audit history</h2>
-      <div className="mb-6 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(1); }} label="Search" showLabel placeholder="Search activity" />
-        <Select
-          label="Action"
-          value={action}
-          onChange={(v) => { setAction(v); setPage(1); }}
-          options={[{ value: "all", label: "All actions" }, ...Object.entries(actionLabels).map(([value, label]) => ({ value, label }))]}
-        />
-        <Select
-          label="Actor"
-          value={actor}
-          onChange={(v) => { setActor(v); setPage(1); }}
-          options={[{ value: "everyone", label: "Everyone" }, ...auditActors.map((a) => ({ value: a, label: a }))]}
-        />
-        <DateInput label="From" value={from} onChange={(v) => { setFrom(v); setPage(1); }} />
-        <DateInput label="To" value={to} onChange={(v) => { setTo(v); setPage(1); }} />
-      </div>
-      <p className="mb-3 text-muted">
-        Showing {filtered.length} of {auditEntries.length} entries
-      </p>
+    <Panel
+      title="Audit history"
+      className="flex-1"
+      filters={
+        <>
+          <div className="mb-3 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(1); }} label="Search" showLabel placeholder="Search activity" />
+            <Select
+              label="Action"
+              value={action}
+              onChange={(v) => { setAction(v); setPage(1); }}
+              options={[{ value: "all", label: "All actions" }, ...Object.entries(actionLabels).map(([value, label]) => ({ value, label }))]}
+            />
+            <Select
+              label="Actor"
+              value={actor}
+              onChange={(v) => { setActor(v); setPage(1); }}
+              options={[{ value: "everyone", label: "Everyone" }, ...auditActors.map((a) => ({ value: a, label: a }))]}
+            />
+            <DateInput label="From" value={from} onChange={(v) => { setFrom(v); setPage(1); }} />
+            <DateInput label="To" value={to} onChange={(v) => { setTo(v); setPage(1); }} />
+          </div>
+          <p className="text-muted">
+            Showing {filtered.length} of {auditEntries.length} entries
+          </p>
+        </>
+      }
+      footer={filtered.length > 0 && pageCount > 1 ? <Pagination page={current} pageCount={pageCount} onPageChange={setPage} /> : null}
+    >
       {filtered.length === 0 ? (
         <EmptyState area="organization" title="No matching activity" body="Try a different search or date range." />
       ) : (
-        <div className="flex flex-col gap-6">
-          <Timeline
-            items={visible.map((e) => ({
-              id: e.id,
-              title: e.summary,
-              meta: `${fmt.format(new Date(e.at))} · ${e.actor} · ${actionLabels[e.action]}`,
-              status: statusFor(e.action),
-            }))}
-          />
-          {pageCount > 1 ? <Pagination page={current} pageCount={pageCount} onPageChange={setPage} /> : null}
-        </div>
+        <Timeline
+          items={visible.map((e) => ({
+            id: e.id,
+            title: e.summary,
+            meta: `${fmt.format(new Date(e.at))} · ${e.actor} · ${actionLabels[e.action]}`,
+            status: statusFor(e.action),
+          }))}
+        />
       )}
-    </section>
+    </Panel>
   );
 }

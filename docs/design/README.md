@@ -205,6 +205,8 @@ Web lives in `apps/web/components/ui/`, mobile in `apps/mobile/src/components/ui
    screen to the body. Only inner sections scroll: the body as one block by default, or, with
    `fill`, each `Panel` on its own. Design screens to fit a laptop screen (1280×720) first; long
    lists and forms scroll inside their panel, never the window. Below `lg` the body scrolls.
+   A list section is a `Panel`: its title, actions and `filters` stay above the scroll, its
+   `footer` (pagination) below it, and table column headers stick to the top of the rows (`DataTable stickyHeader`).
 
 ## Verification
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { Alert, Button } from "@/components/ui";
+import { Alert, Button, Panel, stickyHeadCell } from "@/components/ui";
 import { useRole } from "@/lib/role";
 import { memberRoles, permissions, type MemberRole } from "../mock-data";
 
@@ -47,36 +47,36 @@ export function RolesMatrix() {
   };
 
   return (
-    <section aria-label="Roles and permissions">
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <h2 className="text-[22px] font-bold">Roles and permissions</h2>
-        {canEdit && draft ? (
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setDraft(null)}>Discard</Button>
-            <Button
-              onClick={() => {
-                save(draft);
-                setDraft(null);
-                setNotice("Permissions saved.");
-              }}
-            >
-              Save changes
-            </Button>
-          </div>
-        ) : null}
-      </div>
+    <Panel
+      title="Roles and permissions"
+      className="flex-1"
+      actions={canEdit && draft ? (
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setDraft(null)}>Discard</Button>
+          <Button
+            onClick={() => {
+              save(draft);
+              setDraft(null);
+              setNotice("Permissions saved.");
+            }}
+          >
+            Save changes
+          </Button>
+        </div>
+      ) : null}
+    >
       {notice ? (
         <div className="mb-3">
           <Alert tone="success" title={notice} />
         </div>
       ) : null}
       {!canEdit ? <p className="mb-3 text-sm text-muted">Only the owner can change permissions.</p> : null}
-      <table className="w-full border-t-2 border-ink text-left">
+      <table className="w-full text-left">
         <thead>
           <tr className="text-xs uppercase tracking-[0.12em] text-muted">
-            <th className="py-2 font-bold">Action</th>
+            <th className={`py-2 font-bold ${stickyHeadCell}`}>Action</th>
             {memberRoles.map((r) => (
-              <th key={r} className="py-2 text-center font-bold">{r}</th>
+              <th key={r} className={`py-2 text-center font-bold ${stickyHeadCell}`}>{r}</th>
             ))}
           </tr>
         </thead>
@@ -113,6 +113,6 @@ export function RolesMatrix() {
           ))}
         </tbody>
       </table>
-    </section>
+    </Panel>
   );
 }

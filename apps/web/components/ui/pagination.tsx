@@ -10,7 +10,8 @@ export function Pagination({
   onPageChange: (page: number) => void;
 }) {
   return (
-    <nav aria-label="Pagination" className="flex items-center gap-3">
+    // Sticks to the bottom of the scrolling body so paging is always in reach.
+    <nav aria-label="Pagination" className="sticky bottom-0 z-10 flex items-center gap-3 bg-paper py-2">
       <Button variant="ghost" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
         Previous
       </Button>

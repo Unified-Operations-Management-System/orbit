@@ -17,15 +17,35 @@ export function DashboardPage({ header, fill, children }: { header: ReactNode; f
   );
 }
 
-/** A titled section of a `fill` DashboardPage whose content scrolls inside it. */
-export function Panel({ title, actions, className = "", children }: { title: string; actions?: ReactNode; className?: string; children: ReactNode }) {
+/**
+ * A titled section of a `fill` DashboardPage whose content scrolls inside it. The
+ * title, actions and `filters` stay above the scroll and the `footer` (pagination)
+ * below it, so only the rows move.
+ */
+export function Panel({
+  title,
+  actions,
+  filters,
+  footer,
+  className = "",
+  children,
+}: {
+  title: string;
+  actions?: ReactNode;
+  filters?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
     <section aria-label={title} className={`flex flex-col lg:min-h-0 ${className}`}>
       <div className="mb-3 flex shrink-0 items-center justify-between gap-4">
         <h2 className="text-[22px] font-bold">{title}</h2>
         {actions}
       </div>
+      {filters ? <div className="mb-3 shrink-0">{filters}</div> : null}
       <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">{children}</div>
+      {footer ? <div className="mt-3 shrink-0">{footer}</div> : null}
     </section>
   );
 }

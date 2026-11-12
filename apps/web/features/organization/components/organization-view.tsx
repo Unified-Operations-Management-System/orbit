@@ -20,6 +20,7 @@ export function OrganizationView() {
   const [tab, setTab] = useState("members");
   return (
     <DashboardPage
+      fill={tab !== "company"}
       header={
         <>
           <PageHeader eyebrow="Organization" title="Members and access" />
