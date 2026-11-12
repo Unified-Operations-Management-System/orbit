@@ -3,6 +3,7 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,14 +15,14 @@ import (
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/server"
 )
 
-// NewHandler returns the full API handler. allowedOrigins is a comma-separated
-// list of browser origins allowed to call the API cross-origin.
-func NewHandler(allowedOrigins string) (http.Handler, error) {
-	// Organization and Access Management: in-memory members seeded with the demo
-	// company, and dev:<role> tokens. Postgres and the production authenticator
-	// plug in here behind the same interfaces.
+// NewHandler returns the full API handler over an open, migrated database (see
+// db.Setup). allowedOrigins is a comma-separated list of browser origins allowed
+// to call the API cross-origin.
+func NewHandler(allowedOrigins string, conn *sql.DB) (http.Handler, error) {
+	// Organization and Access Management: members in SQLite, dev:<role> tokens. The
+	// production authenticator plugs in behind the same interface next semester.
 	clock := oam.SystemClock{}
-	members := infra.NewMemoryMemberRepository(infra.DemoMembers(clock.Now())...)
+	members := infra.NewSQLiteMemberRepository(conn)
 	auth := infra.NewDevAuthenticator(members, infra.DemoOrg)
 	memberService := oam.NewMemberService(members, infra.NewLogMailer(slog.Default()), clock, infra.NewIDGenerator())
 

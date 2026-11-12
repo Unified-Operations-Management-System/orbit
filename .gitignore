@@ -34,3 +34,6 @@ compile_commands.json
 
 # build output
 build/
+
+# Local SQLite databases (built by the API on start)
+services/api/data/

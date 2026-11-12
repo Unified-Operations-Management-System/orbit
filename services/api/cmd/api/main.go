@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/app"
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/db"
 )
 
 func main() {
@@ -27,7 +28,30 @@ func main() {
 		origins = "http://localhost:8081"
 	}
 
-	handler, err := app.NewHandler(origins)
+	// The database is a file inside the API: opening it here is "starting" it.
+	// ORBIT_ENV=dev (default, the develop branch) or prod (main: data for the professor).
+	env, err := db.ParseEnv(os.Getenv("ORBIT_ENV"))
+	if err != nil {
+		slog.Error("startup failed", "err", err)
+		os.Exit(1)
+	}
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = db.DefaultPath(env)
+	}
+	conn, err := db.Open(context.Background(), dbPath)
+	if err != nil {
+		slog.Error("startup failed", "err", err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+	if err := db.Setup(context.Background(), conn, env, app.Areas...); err != nil {
+		slog.Error("database setup failed", "err", err, "path", dbPath)
+		os.Exit(1)
+	}
+	slog.Info("database ready", "env", env, "path", dbPath)
+
+	handler, err := app.NewHandler(origins, conn)
 	if err != nil {
 		slog.Error("startup failed", "err", err)
 		os.Exit(1)

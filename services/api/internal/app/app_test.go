@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/getkin/kin-openapi/routers/gorillamux"
 
+	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/db"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
 
@@ -28,9 +30,23 @@ type contractClient struct {
 	token   string // sent as a bearer token when set
 }
 
+// newTestDB returns an in-memory database with every area migrated and the dev seed.
+func newTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	conn, err := db.Open(context.Background(), ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Setup(context.Background(), conn, db.Dev, Areas...); err != nil {
+		t.Fatal(err)
+	}
+	return conn
+}
+
 func newContractClient(t *testing.T) *contractClient {
 	t.Helper()
-	h, err := NewHandler("http://localhost:8081")
+	h, err := NewHandler("http://localhost:8081", newTestDB(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +257,7 @@ func TestMembersFollowContract(t *testing.T) {
 }
 
 func TestUnknownRoute(t *testing.T) {
-	h, err := NewHandler("")
+	h, err := NewHandler("", newTestDB(t))
 	if err != nil {
 		t.Fatal(err)
 	}
