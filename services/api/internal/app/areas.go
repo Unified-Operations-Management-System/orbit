@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/db"
+	hrschema "github.com/Unified-Operations-Management-System/orbit/services/api/internal/hr"
 	oamschema "github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam"
 )
 
@@ -10,4 +11,5 @@ import (
 // Order doesn't matter: migrations run in file-name (timestamp) order across all areas.
 var Areas = []db.Source{
 	oamschema.Schema,
+	hrschema.Schema,
 }
