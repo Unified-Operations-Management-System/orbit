@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	hrapp "github.com/Unified-Operations-Management-System/orbit/services/api/internal/hr/app"
+	hrinfra "github.com/Unified-Operations-Management-System/orbit/services/api/internal/hr/infra"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/httpx"
 	oam "github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/app"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/infra"
@@ -34,7 +36,15 @@ func NewHandler(allowedOrigins string, conn *sql.DB) (http.Handler, error) {
 		NewID:       infra.NewIDGenerator(),
 	})
 
-	strict := oapi.NewStrictHandlerWithOptions(server.New(memberService), nil, oapi.StrictHTTPServerOptions{
+	// HR Management: schedules, time and attendance and corrections over the same database.
+	hrStore := hrinfra.NewStore(conn)
+	hrService := hrapp.NewService(hrapp.Deps{
+		Shifts: hrStore.Shifts(), TimeOff: hrStore.TimeOff(), Entries: hrStore.Entries(), Corrections: hrStore.Corrections(),
+		Periods: hrStore.Periods(), Settings: hrStore.Settings(), People: hrStore.People(),
+		Tx: hrinfra.Tx{DB: conn}, Clock: clock, NewID: hrinfra.NewID,
+	})
+
+	strict := oapi.NewStrictHandlerWithOptions(server.New(memberService, hrService), nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, http.StatusUnprocessableEntity, err.Error(), nil)
 		},

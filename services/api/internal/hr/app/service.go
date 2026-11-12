@@ -227,7 +227,7 @@ func (s *Service) checkPeriodOpen(ctx context.Context, org oam.OrgID, t time.Tim
 func (s *Service) ClockIn(ctx context.Context, p Principal) (domain.TimeEntry, error) {
 	var entry domain.TimeEntry
 	err := s.d.Tx.WithinTx(ctx, func(ctx context.Context) error {
-		now := s.d.Clock.Now()
+		now := punchTime(s.d.Clock.Now())
 		if _, err := s.d.Entries.OpenFor(ctx, p.OrgID, p.MemberID); err == nil {
 			return domain.ErrAlreadyClockedIn // ext 2.a
 		} else if !errors.Is(err, domain.ErrNotFound) {
@@ -267,7 +267,7 @@ func (s *Service) ClockIn(ctx context.Context, p Principal) (domain.TimeEntry, e
 func (s *Service) ClockOut(ctx context.Context, p Principal) (domain.TimeEntry, error) {
 	var entry domain.TimeEntry
 	err := s.d.Tx.WithinTx(ctx, func(ctx context.Context) error {
-		now := s.d.Clock.Now()
+		now := punchTime(s.d.Clock.Now())
 		var err error
 		entry, err = s.d.Entries.OpenFor(ctx, p.OrgID, p.MemberID)
 		if errors.Is(err, domain.ErrNotFound) {
@@ -281,6 +281,9 @@ func (s *Service) ClockOut(ctx context.Context, p Principal) (domain.TimeEntry, 
 			if sh, err := s.d.Shifts.Get(ctx, p.OrgID, entry.ShiftID); err == nil {
 				shift = &sh
 			}
+		}
+		if !now.After(entry.ClockIn) {
+			now = entry.ClockIn.Add(time.Second) // clocked out in the same second: record one second
 		}
 		entry.ClockOut = &now
 		entry.EarlyOut = domain.IsEarlyOut(now, shift) // ext 4.a
@@ -607,6 +610,9 @@ func (s *Service) Employees(ctx context.Context, p Principal, q EmployeeQuery) (
 	out, err := s.d.People.Employees(ctx, f)
 	return out, period, err
 }
+
+// punchTime is the time a punch records: UTC, to the second (how the database stores it).
+func punchTime(t time.Time) time.Time { return t.UTC().Truncate(time.Second) }
 
 // dateRange fills a missing range with defaultDays from defaultFrom and checks it.
 func dateRange(from, to, defaultFrom time.Time, defaultDays int) (time.Time, time.Time, error) {

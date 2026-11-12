@@ -9,6 +9,7 @@ package server
 import (
 	"context"
 
+	hrapp "github.com/Unified-Operations-Management-System/orbit/services/api/internal/hr/app"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oam/app"
 	"github.com/Unified-Operations-Management-System/orbit/services/api/internal/oapi"
 )
@@ -16,13 +17,14 @@ import (
 type Server struct {
 	store   *store
 	members *app.MemberService
+	hr      *hrapp.Service
 }
 
 // Compile-time check that every operation in the spec is implemented.
 var _ oapi.StrictServerInterface = (*Server)(nil)
 
-func New(members *app.MemberService) *Server {
-	return &Server{store: newStore(), members: members}
+func New(members *app.MemberService, hr *hrapp.Service) *Server {
+	return &Server{store: newStore(), members: members, hr: hr}
 }
 
 func (s *Server) GetHealth(ctx context.Context, _ oapi.GetHealthRequestObject) (oapi.GetHealthResponseObject, error) {

@@ -377,3 +377,18 @@ func TestEmployees_Filters(t *testing.T) {
 }
 
 var _ oamapp.Clock = (*fakeClock)(nil)
+
+func TestClockOut_SameSecond(t *testing.T) {
+	f := setup(t)
+	ctx := context.Background()
+	f.clock.t = f.monday.AddDate(0, 0, 8).Add(15*time.Hour + 50*time.Minute + 300*time.Millisecond)
+	in, err := f.svc.ClockIn(ctx, f.who["employee"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.clock.t = f.clock.t.Add(200 * time.Millisecond) // same whole second
+	out, err := f.svc.ClockOut(ctx, f.who["employee"])
+	if err != nil || out.ClockOut.Sub(in.ClockIn) != time.Second {
+		t.Fatalf("same-second clock out: %+v %v", out, err)
+	}
+}
