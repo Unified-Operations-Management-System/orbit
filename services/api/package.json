@@ -8,7 +8,11 @@
     "generate": "go generate ./internal/oapi",
     "test": "go test ./...",
     "lint": "go vet ./...",
-    "start": "./bin/api"
+    "start": "./bin/api",
+    "dev:prod": "ORBIT_ENV=prod go run ./cmd/api",
+    "db:new": "go run ./cmd/dbtool new",
+    "db:status": "go run ./cmd/dbtool status",
+    "db:reset": "go run ./cmd/dbtool reset"
   },
   "devDependencies": {
     "@orbit/api-spec": "workspace:*"

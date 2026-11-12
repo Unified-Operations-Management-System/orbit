@@ -2,6 +2,11 @@
 services:
   api:
     build: ./services/api
+    environment:
+      ORBIT_ENV: prod
+      DB_PATH: /data/orbit.db
+    volumes:
+      - orbit-data:/data
     ports:
       - "8080:8080"
 
@@ -17,3 +22,6 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+volumes:
+  orbit-data:

@@ -17,7 +17,11 @@
     "gen": "turbo run generate",
     "api:breaking": "pnpm --filter @orbit/api-spec run breaking",
     "api:changelog": "pnpm --filter @orbit/api-spec run changelog",
-    "generate": "pnpm --filter @orbit/api-client generate && cd services/api && go generate ./..."
+    "generate": "pnpm --filter @orbit/api-client generate && cd services/api && go generate ./...",
+    "start:prod": "pnpm --filter api dev:prod",
+    "db:new": "pnpm --filter api db:new",
+    "db:status": "pnpm --filter api db:status",
+    "db:reset": "pnpm --filter api db:reset"
   },
   "devDependencies": {
     "turbo": "^2.11.8",

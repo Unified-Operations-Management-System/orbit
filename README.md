@@ -108,7 +108,7 @@ V&V Champion for their own area (see [the solution table](#the-solution)).
 |---|---|---|
 | Mobile | Expo SDK 57 (React Native 0.86), Expo Router, TanStack Query | Camera barcode scanning, offline support |
 | Web | Next.js 16 (App Router, Cache Components), React 19, Tailwind CSS 4 | Playwright end-to-end tests |
-| API | Go 1.27, `net/http`, oapi-codegen (strict server), spec-driven request validation | PostgreSQL, Firebase Auth |
+| API | Go 1.27, `net/http`, oapi-codegen (strict server), spec-driven request validation, SQLite (`modernc.org/sqlite`, see `services/api/README.md`) | Production auth |
 | API contract | OpenAPI 3.1 split by domain, Redocly, Prism mock, oasdiff | |
 | Shared | `@orbit/api-client`: typed client from openapi-typescript + openapi-fetch | |
 | Tooling | pnpm 12 workspaces, Turborepo, mise, GitHub Actions, Docker Compose | Kubernetes, QuickBooks integration |
@@ -424,7 +424,7 @@ Work is "done" when it is merged into the main branch and covered by tests.
 - **Locally, production-like:** `docker compose up --build` builds `services/api/Dockerfile`
   and `apps/web/Dockerfile` and runs them together.
 - **API + web:** the same two images run on any container platform. The target is
-  Kubernetes, with PostgreSQL and Firebase as backing services.
+  Kubernetes, with the SQLite file on a persistent volume (hosting and auth are decided next term).
 - **Mobile:** EAS Build and Submit (see [Mobile development](#mobile-development)).
   Production builds must use an **https** API URL; iOS and Android block plain http.
 
