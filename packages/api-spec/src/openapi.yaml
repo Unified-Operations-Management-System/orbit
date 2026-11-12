@@ -21,6 +21,10 @@ tags:
     description: Sign-in session (Organization and Access Management).
   - name: members
     description: Company membership (Organization and Access Management).
+  - name: permissions
+    description: The editable roles matrix (Organization and Access Management).
+  - name: audit
+    description: History of access changes (Organization and Access Management).
 
 paths:
   /health:
@@ -37,6 +41,12 @@ paths:
     $ref: paths/members/approve.yaml
   /members/{memberId}/deactivate:
     $ref: paths/members/deactivate.yaml
+  /members/{memberId}/role:
+    $ref: paths/members/role.yaml
+  /permissions:
+    $ref: paths/permissions/matrix.yaml
+  /audit:
+    $ref: paths/audit/collection.yaml
 
 components:
   securitySchemes:

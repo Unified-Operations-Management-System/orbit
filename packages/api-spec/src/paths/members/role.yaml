@@ -1,0 +1,38 @@
+parameters:
+  - $ref: ../../components/parameters/MemberId.yaml
+
+patch:
+  operationId: changeMemberRole
+  summary: Change a member's role
+  description: |
+    Gives a member a new role (UC-OAM-06). Who may do this comes from the company's
+    permission matrix (`roles.assign`). Nobody can be made Owner (422), the owner's own
+    role can't change and deactivated members can't change (409).
+  tags: [members]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/members/ChangeRoleRequest.yaml
+  responses:
+    "200":
+      description: The member with the new role.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/members/Member.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

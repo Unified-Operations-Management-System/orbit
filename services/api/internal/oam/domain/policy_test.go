@@ -17,8 +17,8 @@ func TestCan(t *testing.T) {
 	actions := []domain.Action{
 		domain.ActionListMembers,
 		domain.ActionInviteMember,
-		domain.ActionApproveMember,
-		domain.ActionDeactivateMember,
+		domain.ActionAssignRoles,
+		domain.ActionViewAudit,
 	}
 
 	allowed := map[domain.Action]map[domain.Role]bool{
@@ -32,11 +32,10 @@ func TestCan(t *testing.T) {
 			domain.RoleOwner:   true,
 			domain.RoleHRAdmin: true,
 		},
-		domain.ActionApproveMember: {
-			domain.RoleOwner:   true,
-			domain.RoleHRAdmin: true,
+		domain.ActionAssignRoles: {
+			domain.RoleOwner: true,
 		},
-		domain.ActionDeactivateMember: {
+		domain.ActionViewAudit: {
 			domain.RoleOwner:   true,
 			domain.RoleHRAdmin: true,
 		},
@@ -104,5 +103,35 @@ func TestScopeOf(t *testing.T) {
 		if got := domain.ScopeOf(role); got != scope {
 			t.Errorf("ScopeOf(%s) = %s, want %s", role, got, scope)
 		}
+	}
+}
+
+func TestEditedMatrix(t *testing.T) {
+	m := domain.DefaultMatrix()
+	m[domain.ActionAssignRoles] = append(m[domain.ActionAssignRoles], domain.RoleSupervisor)
+	if err := m.Validate(); err != nil {
+		t.Fatalf("valid edit rejected: %v", err)
+	}
+	if err := m.Can(domain.RoleSupervisor, domain.ActionAssignRoles); err != nil {
+		t.Fatalf("edited matrix not used: %v", err)
+	}
+
+	locked := domain.DefaultMatrix()
+	locked[domain.ActionEditCompany] = []domain.Role{domain.RoleHRAdmin}
+	var ve domain.ValidationError
+	if err := locked.Validate(); !errors.As(err, &ve) {
+		t.Fatalf("removing the owner from a locked action: want ValidationError, got %v", err)
+	}
+
+	unknown := domain.DefaultMatrix()
+	unknown["coffee.brew"] = []domain.Role{domain.RoleEmployee}
+	if err := unknown.Validate(); !errors.As(err, &ve) {
+		t.Fatalf("unknown action: want ValidationError, got %v", err)
+	}
+
+	missing := domain.DefaultMatrix()
+	delete(missing, domain.ActionViewCosts)
+	if err := missing.Validate(); !errors.As(err, &ve) {
+		t.Fatalf("missing action: want ValidationError, got %v", err)
 	}
 }

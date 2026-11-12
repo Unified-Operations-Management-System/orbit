@@ -179,6 +179,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/{memberId}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a member's role
+         * @description Gives a member a new role (UC-OAM-06). Who may do this comes from the company's
+         *     permission matrix (`roles.assign`). Nobody can be made Owner (422), the owner's own
+         *     role can't change and deactivated members can't change (409).
+         */
+        patch: operations["changeMemberRole"];
+        trace?: never;
+    };
+    "/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the roles matrix
+         * @description Which roles may perform each action in the caller's company. Every member may read it.
+         */
+        get: operations["getPermissions"];
+        /**
+         * Replace the roles matrix
+         * @description Owner only. Every action must be listed; the owner can't be removed from
+         *     `company.edit` or `roles.assign` (422). The change is recorded in the audit history.
+         */
+        put: operations["updatePermissions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the audit history
+         * @description Changes to membership, roles and permissions in the caller's company, newest first
+         *     (BR-OAM-R10). Owner and HR administrators only.
+         */
+        get: operations["listAuditEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -331,6 +405,63 @@ export interface components {
              */
             email: string;
             role: components["schemas"]["MemberRole"];
+        };
+        /** ChangeRoleRequest */
+        ChangeRoleRequest: {
+            role: components["schemas"]["MemberRole"];
+        };
+        /**
+         * PermissionAction
+         * @description A row of the roles matrix. members.manage covers invite, approve and deactivate.
+         * @example members.manage
+         * @enum {string}
+         */
+        PermissionAction: "company.edit" | "members.manage" | "roles.assign" | "schedules.publish" | "timecards.approve" | "costs.view" | "shift.clock";
+        /** PermissionRow */
+        PermissionRow: {
+            action: components["schemas"]["PermissionAction"];
+            /** @description Roles that may perform the action. */
+            allowed: components["schemas"]["MemberRole"][];
+            /** @description The owner always keeps this action (ignored when sent). */
+            ownerLocked?: boolean;
+        };
+        /** PermissionMatrix */
+        PermissionMatrix: {
+            /** @description One row per action, in display order. */
+            rows: components["schemas"]["PermissionRow"][];
+        };
+        /**
+         * AuditAction
+         * @description What kind of change was recorded.
+         * @example member.invited
+         * @enum {string}
+         */
+        AuditAction: "member.invited" | "member.approved" | "member.deactivated" | "role.changed" | "permissions.updated" | "device.registered" | "device.revoked" | "settings.updated";
+        /** AuditEntry */
+        AuditEntry: {
+            /**
+             * @description Entry ID.
+             * @example a-1f2e3d4c5b6a
+             */
+            id: string;
+            /**
+             * Format: date-time
+             * @description When it happened (UTC).
+             */
+            at: string;
+            /**
+             * @description Member who made the change.
+             * @example m-1
+             */
+            actorId?: string;
+            /**
+             * @description Their name at the time of reading.
+             * @example Alex Morgan
+             */
+            actor: string;
+            action: components["schemas"]["AuditAction"];
+            /** @description One line, e.g. "Invited casey@example.com as Employee". */
+            summary: string;
         };
     };
     responses: {
@@ -733,6 +864,119 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    changeMemberRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Member ID.
+                 * @example m-5
+                 */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The member with the new role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    getPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The company's matrix (the default until the owner edits it). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionMatrix"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    updatePermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionMatrix"];
+            };
+        };
+        responses: {
+            /** @description The saved matrix. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionMatrix"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    listAuditEntries: {
+        parameters: {
+            query?: {
+                /** @description Most entries to return. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entries, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntry"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             default: components["responses"]["UnexpectedError"];
         };

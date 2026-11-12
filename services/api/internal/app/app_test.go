@@ -256,6 +256,77 @@ func TestMembersFollowContract(t *testing.T) {
 	}
 }
 
+func TestRolesPermissionsAuditFollowContract(t *testing.T) {
+	c := newContractClient(t)
+	as := func(token string) *contractClient { c.token = token; return c }
+
+	// Change role (UC-OAM-06).
+	code, body := as("dev:owner").do(http.MethodPatch, "/members/m-3/role", map[string]any{"role": "Supervisor"})
+	var sam oapi.Member
+	_ = json.Unmarshal(body, &sam)
+	if code != http.StatusOK || sam.Role != oapi.Supervisor {
+		t.Fatalf("change role: %d %s", code, body)
+	}
+	if code, _ := as("dev:hr-admin").do(http.MethodPatch, "/members/m-3/role", map[string]any{"role": "Employee"}); code != http.StatusForbidden {
+		t.Fatalf("hr admin without roles.assign: %d", code)
+	}
+	if code, _ := as("dev:owner").do(http.MethodPatch, "/members/m-1/role", map[string]any{"role": "Employee"}); code != http.StatusConflict {
+		t.Fatalf("owner's own role: %d", code)
+	}
+	if code, _ := as("dev:owner").do(http.MethodPatch, "/members/m-3/role", map[string]any{"role": "Owner"}); code != http.StatusUnprocessableEntity {
+		t.Fatalf("second owner: %d", code)
+	}
+
+	// Permissions.
+	// Sam (the only active employee) is a supervisor now, so read as a supervisor.
+	code, body = as("dev:supervisor").do(http.MethodGet, "/permissions", nil)
+	var matrix oapi.PermissionMatrix
+	_ = json.Unmarshal(body, &matrix)
+	if code != http.StatusOK || len(matrix.Rows) != 7 {
+		t.Fatalf("read matrix: %d %s", code, body)
+	}
+	for i, row := range matrix.Rows {
+		if row.Action == "members.manage" {
+			matrix.Rows[i].Allowed = append(row.Allowed, oapi.Supervisor)
+		}
+	}
+	if code, _ := as("dev:supervisor").do(http.MethodPut, "/permissions", matrix); code != http.StatusForbidden {
+		t.Fatalf("supervisor edits matrix: %d", code)
+	}
+	if code, body := as("dev:owner").do(http.MethodPut, "/permissions", matrix); code != http.StatusOK {
+		t.Fatalf("owner edits matrix: %d %s", code, body)
+	}
+	invite := map[string]any{"name": "Via Matrix", "email": "matrix@example.com", "role": "Employee"}
+	if code, body := as("dev:supervisor").do(http.MethodPost, "/members", invite); code != http.StatusCreated {
+		t.Fatalf("supervisor invites after the edit: %d %s", code, body)
+	}
+	for i, row := range matrix.Rows {
+		if row.Action == "roles.assign" {
+			matrix.Rows[i].Allowed = []oapi.MemberRole{oapi.HRAdmin}
+		}
+	}
+	if code, _ := as("dev:owner").do(http.MethodPut, "/permissions", matrix); code != http.StatusUnprocessableEntity {
+		t.Fatalf("removing the owner from roles.assign: %d", code)
+	}
+
+	// Audit history (BR-OAM-R10): newest first, every change above recorded.
+	if code, _ := as("dev:supervisor").do(http.MethodGet, "/audit", nil); code != http.StatusForbidden {
+		t.Fatalf("supervisor reads audit: %d", code)
+	}
+	code, body = as("dev:hr-admin").do(http.MethodGet, "/audit?limit=10", nil)
+	var entries []oapi.AuditEntry
+	_ = json.Unmarshal(body, &entries)
+	if code != http.StatusOK || len(entries) != 3 {
+		t.Fatalf("audit: %d %s", code, body)
+	}
+	want := []oapi.AuditAction{"member.invited", "permissions.updated", "role.changed"}
+	for i, e := range entries {
+		if e.Action != want[i] || e.Actor == "" {
+			t.Fatalf("entry %d: %+v, want %s with an actor", i, e, want[i])
+		}
+	}
+}
+
 func TestUnknownRoute(t *testing.T) {
 	h, err := NewHandler("", newTestDB(t))
 	if err != nil {

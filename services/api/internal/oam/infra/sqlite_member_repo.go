@@ -116,7 +116,11 @@ func oneMember(row *sql.Row) (domain.Member, error) {
 	return m, err
 }
 
-func formatTime(t time.Time) string { return t.UTC().Format(time.RFC3339) }
+// timeLayout is RFC 3339 with fixed-width milliseconds, so stored times sort
+// correctly as text (SQLite's strftime('%Y-%m-%dT%H:%M:%fZ') writes the same).
+const timeLayout = "2006-01-02T15:04:05.000Z07:00"
+
+func formatTime(t time.Time) string { return t.UTC().Format(timeLayout) }
 
 func nullable(s string) any {
 	if s == "" {

@@ -1,0 +1,49 @@
+get:
+  operationId: getPermissions
+  summary: Get the roles matrix
+  description: Which roles may perform each action in the caller's company. Every member may read it.
+  tags: [permissions]
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: The company's matrix (the default until the owner edits it).
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/permissions/PermissionMatrix.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
+
+put:
+  operationId: updatePermissions
+  summary: Replace the roles matrix
+  description: |
+    Owner only. Every action must be listed; the owner can't be removed from
+    `company.edit` or `roles.assign` (422). The change is recorded in the audit history.
+  tags: [permissions]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/permissions/PermissionMatrix.yaml
+  responses:
+    "200":
+      description: The saved matrix.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/permissions/PermissionMatrix.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

@@ -1,0 +1,7 @@
+title: ChangeRoleRequest
+type: object
+additionalProperties: false
+required: [role]
+properties:
+  role:
+    $ref: MemberRole.yaml

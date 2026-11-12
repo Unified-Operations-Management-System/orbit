@@ -1,0 +1,15 @@
+title: PermissionRow
+type: object
+required: [action, allowed]
+properties:
+  action:
+    $ref: PermissionAction.yaml
+  allowed:
+    type: array
+    uniqueItems: true
+    description: Roles that may perform the action.
+    items:
+      $ref: ../members/MemberRole.yaml
+  ownerLocked:
+    type: boolean
+    description: The owner always keeps this action (ignored when sent).

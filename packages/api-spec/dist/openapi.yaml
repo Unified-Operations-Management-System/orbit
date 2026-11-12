@@ -20,6 +20,10 @@ tags:
     description: Sign-in session (Organization and Access Management).
   - name: members
     description: Company membership (Organization and Access Management).
+  - name: permissions
+    description: The editable roles matrix (Organization and Access Management).
+  - name: audit
+    description: History of access changes (Organization and Access Management).
 paths:
   /health:
     get:
@@ -273,6 +277,134 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
         default:
           $ref: '#/components/responses/UnexpectedError'
+  /members/{memberId}/role:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    patch:
+      operationId: changeMemberRole
+      summary: Change a member's role
+      description: |
+        Gives a member a new role (UC-OAM-06). Who may do this comes from the company's
+        permission matrix (`roles.assign`). Nobody can be made Owner (422), the owner's own
+        role can't change and deactivated members can't change (409).
+      tags:
+        - members
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeRoleRequest'
+      responses:
+        '200':
+          description: The member with the new role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /permissions:
+    get:
+      operationId: getPermissions
+      summary: Get the roles matrix
+      description: Which roles may perform each action in the caller's company. Every member may read it.
+      tags:
+        - permissions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The company's matrix (the default until the owner edits it).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionMatrix'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    put:
+      operationId: updatePermissions
+      summary: Replace the roles matrix
+      description: |
+        Owner only. Every action must be listed; the owner can't be removed from
+        `company.edit` or `roles.assign` (422). The change is recorded in the audit history.
+      tags:
+        - permissions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionMatrix'
+      responses:
+        '200':
+          description: The saved matrix.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionMatrix'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /audit:
+    get:
+      operationId: listAuditEntries
+      summary: List the audit history
+      description: |
+        Changes to membership, roles and permissions in the caller's company, newest first
+        (BR-OAM-R10). Owner and HR administrators only.
+      tags:
+        - audit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Most entries to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Entries, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 components:
   securitySchemes:
     bearerAuth:
@@ -491,6 +623,107 @@ components:
             - casey@example.com
         role:
           $ref: '#/components/schemas/MemberRole'
+    ChangeRoleRequest:
+      title: ChangeRoleRequest
+      type: object
+      additionalProperties: false
+      required:
+        - role
+      properties:
+        role:
+          $ref: '#/components/schemas/MemberRole'
+    PermissionAction:
+      title: PermissionAction
+      type: string
+      enum:
+        - company.edit
+        - members.manage
+        - roles.assign
+        - schedules.publish
+        - timecards.approve
+        - costs.view
+        - shift.clock
+      description: A row of the roles matrix. members.manage covers invite, approve and deactivate.
+      examples:
+        - members.manage
+    PermissionRow:
+      title: PermissionRow
+      type: object
+      required:
+        - action
+        - allowed
+      properties:
+        action:
+          $ref: '#/components/schemas/PermissionAction'
+        allowed:
+          type: array
+          uniqueItems: true
+          description: Roles that may perform the action.
+          items:
+            $ref: '#/components/schemas/MemberRole'
+        ownerLocked:
+          type: boolean
+          description: The owner always keeps this action (ignored when sent).
+    PermissionMatrix:
+      title: PermissionMatrix
+      type: object
+      required:
+        - rows
+      properties:
+        rows:
+          type: array
+          description: One row per action, in display order.
+          items:
+            $ref: '#/components/schemas/PermissionRow'
+    AuditAction:
+      title: AuditAction
+      type: string
+      enum:
+        - member.invited
+        - member.approved
+        - member.deactivated
+        - role.changed
+        - permissions.updated
+        - device.registered
+        - device.revoked
+        - settings.updated
+      description: What kind of change was recorded.
+      examples:
+        - member.invited
+    AuditEntry:
+      title: AuditEntry
+      type: object
+      required:
+        - id
+        - at
+        - actor
+        - action
+        - summary
+      properties:
+        id:
+          type: string
+          description: Entry ID.
+          examples:
+            - a-1f2e3d4c5b6a
+        at:
+          type: string
+          format: date-time
+          description: When it happened (UTC).
+        actorId:
+          type: string
+          description: Member who made the change.
+          examples:
+            - m-1
+        actor:
+          type: string
+          description: Their name at the time of reading.
+          examples:
+            - Alex Morgan
+        action:
+          $ref: '#/components/schemas/AuditAction'
+        summary:
+          type: string
+          description: One line, e.g. "Invited casey@example.com as Employee".
   responses:
     UnexpectedError:
       description: Unexpected error.

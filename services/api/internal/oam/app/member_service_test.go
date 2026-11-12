@@ -38,7 +38,10 @@ func fixture(t *testing.T) (*app.MemberService, *infra.MemoryMemberRepository, *
 	repo := infra.NewMemoryMemberRepository(infra.DemoMembers(now)...)
 	clock := &fakeClock{now: now}
 	mailer := &recordingMailer{}
-	svc := app.NewMemberService(repo, mailer, clock, func() domain.MemberID { return "m-new" })
+	svc := app.NewMemberService(app.Deps{
+		Members: repo, Permissions: infra.NewMemoryPermissionRepository(), Audit: &infra.MemoryAuditLog{},
+		Tx: app.NoTx{}, Mailer: mailer, Clock: clock, NewID: func() domain.MemberID { return "m-new" },
+	})
 	return svc, repo, mailer, clock
 }
 
@@ -151,8 +154,11 @@ func TestInviteMember(t *testing.T) {
 		now := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
 		repo := infra.NewMemoryMemberRepository(infra.DemoMembers(now)...)
 		sendErr := errors.New("smtp down")
-		svc := app.NewMemberService(repo, failingMailer{err: sendErr}, &fakeClock{now: now},
-			func() domain.MemberID { return "m-new" })
+		svc := app.NewMemberService(app.Deps{
+			Members: repo, Permissions: infra.NewMemoryPermissionRepository(), Audit: &infra.MemoryAuditLog{},
+			Tx: app.NoTx{}, Mailer: failingMailer{err: sendErr}, Clock: &fakeClock{now: now},
+			NewID: func() domain.MemberID { return "m-new" },
+		})
 		owner := principalFor(t, repo, "m-1")
 
 		_, err := svc.InviteMember(ctx, owner, app.InviteInput{

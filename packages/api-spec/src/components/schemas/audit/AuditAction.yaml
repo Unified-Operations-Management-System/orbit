@@ -1,0 +1,5 @@
+title: AuditAction
+type: string
+enum: [member.invited, member.approved, member.deactivated, role.changed, permissions.updated, device.registered, device.revoked, settings.updated]
+description: What kind of change was recorded.
+examples: [member.invited]

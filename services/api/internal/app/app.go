@@ -24,7 +24,15 @@ func NewHandler(allowedOrigins string, conn *sql.DB) (http.Handler, error) {
 	clock := oam.SystemClock{}
 	members := infra.NewSQLiteMemberRepository(conn)
 	auth := infra.NewDevAuthenticator(members, infra.DemoOrg)
-	memberService := oam.NewMemberService(members, infra.NewLogMailer(slog.Default()), clock, infra.NewIDGenerator())
+	memberService := oam.NewMemberService(oam.Deps{
+		Members:     members,
+		Permissions: infra.NewSQLitePermissionRepository(conn),
+		Audit:       infra.NewSQLiteAuditLog(conn),
+		Tx:          infra.SQLiteTx{DB: conn},
+		Mailer:      infra.NewLogMailer(slog.Default()),
+		Clock:       clock,
+		NewID:       infra.NewIDGenerator(),
+	})
 
 	strict := oapi.NewStrictHandlerWithOptions(server.New(memberService), nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {

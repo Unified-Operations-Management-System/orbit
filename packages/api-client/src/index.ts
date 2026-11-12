@@ -10,6 +10,10 @@ export type FieldError = components["schemas"]["FieldError"];
 export type Member = components["schemas"]["Member"];
 export type MemberRole = components["schemas"]["MemberRole"];
 export type MemberStatus = components["schemas"]["MemberStatus"];
+export type PermissionMatrix = components["schemas"]["PermissionMatrix"];
+export type PermissionAction = components["schemas"]["PermissionAction"];
+export type AuditEntry = components["schemas"]["AuditEntry"];
+export type AuditAction = components["schemas"]["AuditAction"];
 
 /**
  * Typed client for the Go API. Paths, params, bodies and responses are all

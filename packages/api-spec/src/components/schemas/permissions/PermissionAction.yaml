@@ -1,0 +1,5 @@
+title: PermissionAction
+type: string
+enum: [company.edit, members.manage, roles.assign, schedules.publish, timecards.approve, costs.view, shift.clock]
+description: A row of the roles matrix. members.manage covers invite, approve and deactivate.
+examples: [members.manage]

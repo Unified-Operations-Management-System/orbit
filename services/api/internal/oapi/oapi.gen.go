@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -22,6 +23,42 @@ import (
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for AuditAction.
+const (
+	DeviceRegistered   AuditAction = "device.registered"
+	DeviceRevoked      AuditAction = "device.revoked"
+	MemberApproved     AuditAction = "member.approved"
+	MemberDeactivated  AuditAction = "member.deactivated"
+	MemberInvited      AuditAction = "member.invited"
+	PermissionsUpdated AuditAction = "permissions.updated"
+	RoleChanged        AuditAction = "role.changed"
+	SettingsUpdated    AuditAction = "settings.updated"
+)
+
+// Valid indicates whether the value is a known member of the AuditAction enum.
+func (e AuditAction) Valid() bool {
+	switch e {
+	case DeviceRegistered:
+		return true
+	case DeviceRevoked:
+		return true
+	case MemberApproved:
+		return true
+	case MemberDeactivated:
+		return true
+	case MemberInvited:
+		return true
+	case PermissionsUpdated:
+		return true
+	case RoleChanged:
+		return true
+	case SettingsUpdated:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for HealthStatus.
 const (
@@ -81,6 +118,81 @@ func (e MemberStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Defines values for PermissionAction.
+const (
+	CompanyEdit      PermissionAction = "company.edit"
+	CostsView        PermissionAction = "costs.view"
+	MembersManage    PermissionAction = "members.manage"
+	RolesAssign      PermissionAction = "roles.assign"
+	SchedulesPublish PermissionAction = "schedules.publish"
+	ShiftClock       PermissionAction = "shift.clock"
+	TimecardsApprove PermissionAction = "timecards.approve"
+)
+
+// Valid indicates whether the value is a known member of the PermissionAction enum.
+func (e PermissionAction) Valid() bool {
+	switch e {
+	case CompanyEdit:
+		return true
+	case CostsView:
+		return true
+	case MembersManage:
+		return true
+	case RolesAssign:
+		return true
+	case SchedulesPublish:
+		return true
+	case ShiftClock:
+		return true
+	case TimecardsApprove:
+		return true
+	default:
+		return false
+	}
+}
+
+// AuditAction What kind of change was recorded.
+//
+// Examples: member.invited
+type AuditAction string
+
+// AuditEntry defines model for AuditEntry.
+type AuditEntry struct {
+	// Action What kind of change was recorded.
+	//
+	// Examples: member.invited
+	Action AuditAction `json:"action"`
+
+	// Actor Their name at the time of reading.
+	//
+	// Examples: Alex Morgan
+	Actor string `json:"actor"`
+
+	// ActorId Member who made the change.
+	//
+	// Examples: m-1
+	ActorId *string `json:"actorId,omitempty"`
+
+	// At When it happened (UTC).
+	At time.Time `json:"at"`
+
+	// Id Entry ID.
+	//
+	// Examples: a-1f2e3d4c5b6a
+	Id string `json:"id"`
+
+	// Summary One line, e.g. "Invited casey@example.com as Employee".
+	Summary string `json:"summary"`
+}
+
+// ChangeRoleRequest defines model for ChangeRoleRequest.
+type ChangeRoleRequest struct {
+	// Role What the member may do in Orbit (see the roles matrix).
+	//
+	// Examples: Employee
+	Role MemberRole `json:"role"`
 }
 
 // CreateTodoRequest defines model for CreateTodoRequest.
@@ -180,6 +292,31 @@ type MemberRole string
 // Examples: Pending
 type MemberStatus string
 
+// PermissionAction A row of the roles matrix. members.manage covers invite, approve and deactivate.
+//
+// Examples: members.manage
+type PermissionAction string
+
+// PermissionMatrix defines model for PermissionMatrix.
+type PermissionMatrix struct {
+	// Rows One row per action, in display order.
+	Rows []PermissionRow `json:"rows"`
+}
+
+// PermissionRow defines model for PermissionRow.
+type PermissionRow struct {
+	// Action A row of the roles matrix. members.manage covers invite, approve and deactivate.
+	//
+	// Examples: members.manage
+	Action PermissionAction `json:"action"`
+
+	// Allowed Roles that may perform the action.
+	Allowed []MemberRole `json:"allowed"`
+
+	// OwnerLocked The owner always keeps this action (ignored when sent).
+	OwnerLocked *bool `json:"ownerLocked,omitempty"`
+}
+
 // Problem An error, as RFC 9457 problem details, with an optional list of field errors.
 type Problem struct {
 	// Detail A human-readable explanation of this occurrence.
@@ -253,8 +390,20 @@ type UnexpectedError = Problem
 // ValidationFailed An error, as RFC 9457 problem details, with an optional list of field errors.
 type ValidationFailed = Problem
 
+// ListAuditEntriesParams defines parameters for ListAuditEntries.
+type ListAuditEntriesParams struct {
+	// Limit Most entries to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // InviteMemberJSONRequestBody defines body for InviteMember for application/json ContentType.
 type InviteMemberJSONRequestBody = InviteMemberRequest
+
+// ChangeMemberRoleJSONRequestBody defines body for ChangeMemberRole for application/json ContentType.
+type ChangeMemberRoleJSONRequestBody = ChangeRoleRequest
+
+// UpdatePermissionsJSONRequestBody defines body for UpdatePermissions for application/json ContentType.
+type UpdatePermissionsJSONRequestBody = PermissionMatrix
 
 // CreateTodoJSONRequestBody defines body for CreateTodo for application/json ContentType.
 type CreateTodoJSONRequestBody = CreateTodoRequest
@@ -264,6 +413,9 @@ type UpdateTodoJSONRequestBody = UpdateTodoRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListAuditEntries List the audit history
+	// (GET /audit)
+	ListAuditEntries(w http.ResponseWriter, r *http.Request, params ListAuditEntriesParams)
 	// GetSession Get the signed-in member
 	// (GET /auth/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -282,6 +434,15 @@ type ServerInterface interface {
 	// DeactivateMember Deactivate a member
 	// (POST /members/{memberId}/deactivate)
 	DeactivateMember(w http.ResponseWriter, r *http.Request, memberId MemberId)
+	// ChangeMemberRole Change a member's role
+	// (PATCH /members/{memberId}/role)
+	ChangeMemberRole(w http.ResponseWriter, r *http.Request, memberId MemberId)
+	// GetPermissions Get the roles matrix
+	// (GET /permissions)
+	GetPermissions(w http.ResponseWriter, r *http.Request)
+	// UpdatePermissions Replace the roles matrix
+	// (PUT /permissions)
+	UpdatePermissions(w http.ResponseWriter, r *http.Request)
 	// ListTodos List todos
 	// (GET /todos)
 	ListTodos(w http.ResponseWriter, r *http.Request)
@@ -304,6 +465,39 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAuditEntries operation middleware
+func (siw *ServerInterfaceWrapper) ListAuditEntries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuditEntriesParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAuditEntries(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -404,6 +598,60 @@ func (siw *ServerInterfaceWrapper) DeactivateMember(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeactivateMember(w, r, memberId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangeMemberRole operation middleware
+func (siw *ServerInterfaceWrapper) ChangeMemberRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "memberId" -------------
+	var memberId MemberId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "memberId", r.PathValue("memberId"), &memberId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeMemberRole(w, r, memberId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPermissions operation middleware
+func (siw *ServerInterfaceWrapper) GetPermissions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPermissions(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePermissions operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePermissions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePermissions(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -623,6 +871,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/members", wrapper.InviteMember)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/members/{memberId}/approve", wrapper.ApproveMember)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/members/{memberId}/deactivate", wrapper.DeactivateMember)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/members/{memberId}/role", wrapper.ChangeMemberRole)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/permissions", wrapper.GetPermissions)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/permissions", wrapper.UpdatePermissions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/audit", wrapper.ListAuditEntries)
 
 	return m
 }
@@ -638,6 +890,93 @@ type UnauthorizedApplicationProblemPlusJSONResponse Problem
 type UnexpectedErrorApplicationProblemPlusJSONResponse Problem
 
 type ValidationFailedApplicationProblemPlusJSONResponse Problem
+
+type ListAuditEntriesRequestObject struct {
+	Params ListAuditEntriesParams
+}
+
+type ListAuditEntriesResponseObject interface {
+	VisitListAuditEntriesResponse(w http.ResponseWriter) error
+}
+
+type ListAuditEntries200JSONResponse []AuditEntry
+
+func (response ListAuditEntries200JSONResponse) VisitListAuditEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEntries401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAuditEntries401ApplicationProblemPlusJSONResponse) VisitListAuditEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEntries403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListAuditEntries403ApplicationProblemPlusJSONResponse) VisitListAuditEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEntries422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAuditEntries422ApplicationProblemPlusJSONResponse) VisitListAuditEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEntriesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListAuditEntriesdefaultApplicationProblemPlusJSONResponse) VisitListAuditEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetSessionRequestObject struct {
 }
@@ -1142,6 +1481,267 @@ func (response DeactivateMemberdefaultApplicationProblemPlusJSONResponse) VisitD
 	return err
 }
 
+type ChangeMemberRoleRequestObject struct {
+	MemberId MemberId `json:"memberId"`
+	Body     *ChangeMemberRoleJSONRequestBody
+}
+
+type ChangeMemberRoleResponseObject interface {
+	VisitChangeMemberRoleResponse(w http.ResponseWriter) error
+}
+
+type ChangeMemberRole200JSONResponse Member
+
+func (response ChangeMemberRole200JSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeMemberRole401ApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeMemberRole403ApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeMemberRole404ApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRole409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeMemberRole409ApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRole422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeMemberRole422ApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeMemberRoledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ChangeMemberRoledefaultApplicationProblemPlusJSONResponse) VisitChangeMemberRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPermissionsRequestObject struct {
+}
+
+type GetPermissionsResponseObject interface {
+	VisitGetPermissionsResponse(w http.ResponseWriter) error
+}
+
+type GetPermissions200JSONResponse PermissionMatrix
+
+func (response GetPermissions200JSONResponse) VisitGetPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPermissions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetPermissions401ApplicationProblemPlusJSONResponse) VisitGetPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPermissionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPermissionsdefaultApplicationProblemPlusJSONResponse) VisitGetPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePermissionsRequestObject struct {
+	Body *UpdatePermissionsJSONRequestBody
+}
+
+type UpdatePermissionsResponseObject interface {
+	VisitUpdatePermissionsResponse(w http.ResponseWriter) error
+}
+
+type UpdatePermissions200JSONResponse PermissionMatrix
+
+func (response UpdatePermissions200JSONResponse) VisitUpdatePermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePermissions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePermissions401ApplicationProblemPlusJSONResponse) VisitUpdatePermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePermissions403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePermissions403ApplicationProblemPlusJSONResponse) VisitUpdatePermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePermissions422ApplicationProblemPlusJSONResponse struct {
+	ValidationFailedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePermissions422ApplicationProblemPlusJSONResponse) VisitUpdatePermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePermissionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdatePermissionsdefaultApplicationProblemPlusJSONResponse) VisitUpdatePermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListTodosRequestObject struct {
 }
 
@@ -1374,6 +1974,9 @@ func (response UpdateTododefaultApplicationProblemPlusJSONResponse) VisitUpdateT
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListAuditEntries List the audit history
+	// (GET /audit)
+	ListAuditEntries(ctx context.Context, request ListAuditEntriesRequestObject) (ListAuditEntriesResponseObject, error)
 	// GetSession Get the signed-in member
 	// (GET /auth/session)
 	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
@@ -1392,6 +1995,15 @@ type StrictServerInterface interface {
 	// DeactivateMember Deactivate a member
 	// (POST /members/{memberId}/deactivate)
 	DeactivateMember(ctx context.Context, request DeactivateMemberRequestObject) (DeactivateMemberResponseObject, error)
+	// ChangeMemberRole Change a member's role
+	// (PATCH /members/{memberId}/role)
+	ChangeMemberRole(ctx context.Context, request ChangeMemberRoleRequestObject) (ChangeMemberRoleResponseObject, error)
+	// GetPermissions Get the roles matrix
+	// (GET /permissions)
+	GetPermissions(ctx context.Context, request GetPermissionsRequestObject) (GetPermissionsResponseObject, error)
+	// UpdatePermissions Replace the roles matrix
+	// (PUT /permissions)
+	UpdatePermissions(ctx context.Context, request UpdatePermissionsRequestObject) (UpdatePermissionsResponseObject, error)
 	// ListTodos List todos
 	// (GET /todos)
 	ListTodos(ctx context.Context, request ListTodosRequestObject) (ListTodosResponseObject, error)
@@ -1443,6 +2055,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListAuditEntries operation middleware
+func (sh *strictHandler) ListAuditEntries(w http.ResponseWriter, r *http.Request, params ListAuditEntriesParams) {
+	var request ListAuditEntriesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAuditEntries(ctx, request.(ListAuditEntriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAuditEntries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAuditEntriesResponseObject); ok {
+		if err := validResponse.VisitListAuditEntriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetSession operation middleware
@@ -1600,6 +2238,94 @@ func (sh *strictHandler) DeactivateMember(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// ChangeMemberRole operation middleware
+func (sh *strictHandler) ChangeMemberRole(w http.ResponseWriter, r *http.Request, memberId MemberId) {
+	var request ChangeMemberRoleRequestObject
+
+	request.MemberId = memberId
+
+	var body ChangeMemberRoleJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangeMemberRole(ctx, request.(ChangeMemberRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangeMemberRole")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChangeMemberRoleResponseObject); ok {
+		if err := validResponse.VisitChangeMemberRoleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPermissions operation middleware
+func (sh *strictHandler) GetPermissions(w http.ResponseWriter, r *http.Request) {
+	var request GetPermissionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPermissions(ctx, request.(GetPermissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPermissions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPermissionsResponseObject); ok {
+		if err := validResponse.VisitGetPermissionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePermissions operation middleware
+func (sh *strictHandler) UpdatePermissions(w http.ResponseWriter, r *http.Request) {
+	var request UpdatePermissionsRequestObject
+
+	var body UpdatePermissionsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePermissions(ctx, request.(UpdatePermissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePermissions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePermissionsResponseObject); ok {
+		if err := validResponse.VisitUpdatePermissionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListTodos operation middleware
 func (sh *strictHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
 	var request ListTodosRequestObject
@@ -1719,60 +2445,77 @@ func (sh *strictHandler) UpdateTodo(w http.ResponseWriter, r *http.Request, id T
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

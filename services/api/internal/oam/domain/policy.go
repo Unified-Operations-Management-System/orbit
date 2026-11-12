@@ -3,12 +3,16 @@ package domain
 // Action is an operation a member may attempt.
 type Action string
 
-// The actions covered by the OAM policy.
+// The actions covered by the OAM policy. Listing members is open to every role
+// (scope limits what they see); viewing the audit history is fixed to the Owner and
+// HR Admin; everything else is a row of the editable Matrix (see permissions.go).
 const (
-	ActionListMembers      Action = "members.list"
-	ActionInviteMember     Action = "members.invite"
-	ActionApproveMember    Action = "members.approve"
-	ActionDeactivateMember Action = "members.deactivate"
+	ActionListMembers Action = "members.list"
+	ActionViewAudit   Action = "audit.view"
+
+	ActionInviteMember     = ActionManageMembers
+	ActionApproveMember    = ActionManageMembers
+	ActionDeactivateMember = ActionManageMembers
 )
 
 // Scope is how much of the company a role can see (BR-OAM-R09).
@@ -48,20 +52,8 @@ func CanSee(role Role, viewer MemberID, team TeamID, m Member) bool {
 	}
 }
 
-// Can reports whether role may perform a, returning ErrForbidden if not. Every
-// role may list members; only the Owner and HR Admin may invite, approve or
-// deactivate.
+// Can checks role against the default matrix. Use Matrix.Can when the company has
+// edited its permissions.
 func Can(role Role, a Action) error {
-	switch a {
-	case ActionListMembers:
-		switch role {
-		case RoleOwner, RoleSupervisor, RoleEmployee, RoleHRAdmin:
-			return nil
-		}
-	case ActionInviteMember, ActionApproveMember, ActionDeactivateMember:
-		if role == RoleOwner || role == RoleHRAdmin {
-			return nil
-		}
-	}
-	return ErrForbidden
+	return DefaultMatrix().Can(role, a)
 }

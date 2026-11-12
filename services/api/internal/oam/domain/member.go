@@ -122,6 +122,22 @@ func (m *Member) Approve(now time.Time) error {
 	return nil
 }
 
+// ChangeRole gives the member a new role. Nobody becomes Owner this way (one owner,
+// BR-OAM-R01), the owner's own role is protected, and deactivated members can't change.
+func (m *Member) ChangeRole(r Role) error {
+	if r == RoleOwner {
+		return ValidationError{Field: "role", Message: "there is only one owner"}
+	}
+	if m.Role == RoleOwner {
+		return ErrOwnerProtected
+	}
+	if m.Status == StatusDeactivated {
+		return ErrInvalidTransition
+	}
+	m.Role = r
+	return nil
+}
+
 // Deactivate moves a Pending or Active member to Deactivated. The Owner is
 // protected and an already deactivated member is an invalid transition.
 func (m *Member) Deactivate() error {

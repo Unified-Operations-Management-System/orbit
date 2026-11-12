@@ -1,0 +1,9 @@
+title: PermissionMatrix
+type: object
+required: [rows]
+properties:
+  rows:
+    type: array
+    description: One row per action, in display order.
+    items:
+      $ref: PermissionRow.yaml

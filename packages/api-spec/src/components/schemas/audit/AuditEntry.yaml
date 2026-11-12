@@ -1,0 +1,25 @@
+title: AuditEntry
+type: object
+required: [id, at, actor, action, summary]
+properties:
+  id:
+    type: string
+    description: Entry ID.
+    examples: [a-1f2e3d4c5b6a]
+  at:
+    type: string
+    format: date-time
+    description: When it happened (UTC).
+  actorId:
+    type: string
+    description: Member who made the change.
+    examples: [m-1]
+  actor:
+    type: string
+    description: Their name at the time of reading.
+    examples: [Alex Morgan]
+  action:
+    $ref: AuditAction.yaml
+  summary:
+    type: string
+    description: One line, e.g. "Invited casey@example.com as Employee".

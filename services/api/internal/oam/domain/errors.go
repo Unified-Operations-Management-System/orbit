@@ -9,7 +9,7 @@ var (
 	ErrForbidden         = errors.New("not allowed for your role")
 	ErrInviteExpired     = errors.New("invitation has expired")
 	ErrInvalidTransition = errors.New("member is not in a state that allows this")
-	ErrOwnerProtected    = errors.New("the owner cannot be deactivated")
+	ErrOwnerProtected    = errors.New("the owner's role and access can't be changed")
 )
 
 // ValidationError reports a caller-supplied field value that failed validation.

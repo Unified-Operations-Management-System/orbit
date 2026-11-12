@@ -1,0 +1,36 @@
+get:
+  operationId: listAuditEntries
+  summary: List the audit history
+  description: |
+    Changes to membership, roles and permissions in the caller's company, newest first
+    (BR-OAM-R10). Owner and HR administrators only.
+  tags: [audit]
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: limit
+      in: query
+      required: false
+      description: Most entries to return.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 200
+  responses:
+    "200":
+      description: Entries, newest first.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../../components/schemas/audit/AuditEntry.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

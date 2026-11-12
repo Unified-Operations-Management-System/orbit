@@ -237,3 +237,25 @@ func TestDeactivate(t *testing.T) {
 		})
 	}
 }
+
+func TestChangeRole(t *testing.T) {
+	member := func(role domain.Role, status domain.Status) domain.Member {
+		return domain.Member{ID: "m", Role: role, Status: status}
+	}
+	m := member(domain.RoleEmployee, domain.StatusActive)
+	if err := m.ChangeRole(domain.RoleSupervisor); err != nil || m.Role != domain.RoleSupervisor {
+		t.Fatalf("change: %v %s", err, m.Role)
+	}
+	var ve domain.ValidationError
+	if err := m.ChangeRole(domain.RoleOwner); !errors.As(err, &ve) {
+		t.Fatalf("make owner: want ValidationError, got %v", err)
+	}
+	owner := member(domain.RoleOwner, domain.StatusActive)
+	if err := owner.ChangeRole(domain.RoleEmployee); !errors.Is(err, domain.ErrOwnerProtected) {
+		t.Fatalf("owner: want ErrOwnerProtected, got %v", err)
+	}
+	gone := member(domain.RoleEmployee, domain.StatusDeactivated)
+	if err := gone.ChangeRole(domain.RoleSupervisor); !errors.Is(err, domain.ErrInvalidTransition) {
+		t.Fatalf("deactivated: want ErrInvalidTransition, got %v", err)
+	}
+}
