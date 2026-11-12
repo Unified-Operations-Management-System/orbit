@@ -3,29 +3,29 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, ListRow, PageHeader, Segmented, T } from "@/components/ui";
-import { PrototypeNote, Tag, hrStyles } from "@/features/hr/hr-screen";
-import { formatTime, shifts, today, weekLabels, type Shift } from "@/features/hr/time-attendance";
+import { Alert, Badge, Button, EmptyState, ListRow, PageHeader, Segmented, T } from "@/components/ui";
+import { problemMessage, type Shift, type TimeOff } from "@/features/hr/api";
+import { addDays, formatDay, formatRange, formatTime, sameDay, startOfWeek } from "@/features/hr/format";
+import { Tag, hrStyles } from "@/features/hr/hr-screen";
+import { $api } from "@/lib/api";
 import { colors, space } from "@/theme";
 
-// WF-05 Schedule. UC-HR-03 View Upcoming Shifts, steps 1–3 and extensions 2.a–2.d, 3.a.
+// WF-05 Schedule. UC-HR-03 View Upcoming Shifts on GET /hr/shifts (steps 1-3, ext 2.a-2.d, 3.a).
 
-function ShiftRight({ shift }: { shift: Shift }) {
-  if (shift.status === "timeOff") return <Tag shape="square" color={colors.blue} textColor={colors.blue} label="Time off" />;
-  return (
-    <View style={styles.right}>
-      {shift.status === "updated" ? <Badge label="Updated" tone="warning" /> : null}
-      <T>→</T>
-    </View>
-  );
-}
+type Item = { at: Date; shift?: Shift; off?: TimeOff };
 
 export default function Schedule() {
   const [week, setWeek] = useState<"this" | "next">("this");
-  const [noneYet, setNoneYet] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const monday = addDays(startOfWeek(new Date()), week === "this" ? 0 : 7);
+  const sunday = addDays(monday, 7);
+  const schedule = $api.useQuery("get", "/hr/shifts", {
+    params: { query: { from: monday.toISOString(), to: sunday.toISOString() } },
+  });
 
-  const visible = noneYet ? [] : shifts.filter((s) => s.week === week);
+  const items: Item[] = [
+    ...(schedule.data?.shifts ?? []).map((s) => ({ at: new Date(s.startsAt), shift: s })),
+    ...(schedule.data?.timeOff ?? []).map((t) => ({ at: new Date(t.startsAt), off: t })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime());
 
   return (
     <SafeAreaView edges={["top"]} style={styles.flex}>
@@ -40,37 +40,50 @@ export default function Schedule() {
           value={week}
           onChange={(v) => setWeek(v as "this" | "next")}
         />
-        <T variant="label">{weekLabels[week]}</T>
+        <T variant="label">
+          {week === "this" ? "This week" : "Next week"} · {formatRange(monday, sunday)}
+        </T>
 
-        {loadError ? (
+        {schedule.isPending ? (
+          <T style={hrStyles.muted}>Loading…</T>
+        ) : schedule.isError ? (
           // Ext 2.d
           <View style={styles.gap}>
-            <Alert tone="error" title="Couldn't load your schedule" message="Check your connection and try again." />
-            <Button variant="secondary" title="Retry" onPress={() => setLoadError(false)} />
+            <Alert tone="error" title="Couldn't load your schedule" message={problemMessage(schedule.error)} />
+            <Button variant="secondary" title="Retry" onPress={() => schedule.refetch()} />
           </View>
-        ) : visible.length === 0 ? (
+        ) : items.length === 0 ? (
           // Ext 2.a
-          <EmptyState area="hr" title="No upcoming shifts published yet" body="Your supervisor hasn't published the schedule. Check back later." />
+          <EmptyState area="hr" title="No upcoming shifts published yet" body="Your supervisor hasn't published this week's schedule. Check back later." />
         ) : (
           <View style={hrStyles.rule}>
-            {visible.map((s) => (
-              <ListRow
-                key={s.id}
-                title={`${s.day} ${s.date}${s.date === today.date ? " · Today" : ""}`}
-                subtitle={s.status === "timeOff" ? "Approved time off" : `${formatTime(s.start)} – ${formatTime(s.end)} · ${s.station}`}
-                right={<ShiftRight shift={s} />}
-                onPress={s.status === "timeOff" ? undefined : () => router.push({ pathname: "/hr/shift/[shiftId]", params: { shiftId: s.id } })}
-              />
-            ))}
+            {items.map(({ shift, off, at }) =>
+              off ? (
+                // Ext 2.c
+                <ListRow
+                  key={off.id}
+                  title={formatDay(at)}
+                  subtitle={off.status === "Approved" ? `${off.kind} · approved time off` : `${off.kind} · ${off.status.toLowerCase()}`}
+                  right={<Tag shape="square" color={colors.blue} textColor={colors.blue} label="Time off" />}
+                />
+              ) : (
+                <ListRow
+                  key={shift!.id}
+                  title={`${formatDay(at)}${sameDay(at, new Date()) ? " · Today" : ""}`}
+                  subtitle={`${formatTime(shift!.startsAt)} – ${formatTime(shift!.endsAt)} · ${shift!.station}`}
+                  right={
+                    <View style={styles.right}>
+                      {/* Ext 2.b */}
+                      {shift!.changeNote ? <Badge label="Updated" tone="warning" /> : null}
+                      <T>→</T>
+                    </View>
+                  }
+                  onPress={() => router.push({ pathname: "/hr/shift/[shiftId]", params: { shiftId: shift!.id } })}
+                />
+              ),
+            )}
           </View>
         )}
-
-        <Card style={[hrStyles.card, styles.demo]}>
-          <T variant="label">Prototype controls</T>
-          <Checkbox label="No shifts published yet" checked={noneYet} onChange={setNoneYet} />
-          <Checkbox label="Simulate load error" checked={loadError} onChange={setLoadError} />
-        </Card>
-        <PrototypeNote>Prototype: sample schedule for Priya. Published shifts arrive with the HR API.</PrototypeNote>
       </ScrollView>
     </SafeAreaView>
   );
@@ -81,5 +94,4 @@ const styles = StyleSheet.create({
   body: { padding: space[6], gap: space[3] },
   gap: { gap: space[3] },
   right: { flexDirection: "row", alignItems: "center", gap: space[2] },
-  demo: { marginTop: space[6], backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
 });
