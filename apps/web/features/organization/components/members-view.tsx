@@ -56,11 +56,12 @@ export function MembersView() {
 
   const replace = (updated: Member) => setMembers((ms) => ms.map((m) => (m.id === updated.id ? updated : m)));
 
-  // No role-change endpoint yet: the change is shown but not saved.
-  const changeRole = (member: Member, role: MemberRole) => {
-    replace({ ...member, role });
+  const changeRole = async (member: Member, role: MemberRole) => {
     setRoleTarget(null);
-    setNotice(`${member.name} is now ${role} (not saved yet).`);
+    const { data, error } = await browserApi.PATCH("/members/{memberId}/role", { headers, params: { path: { memberId: member.id } }, body: { role } });
+    if (error) return setNotice(`Couldn't change ${member.name}'s role: ${problemMessage(error)}`);
+    replace(data);
+    setNotice(`${member.name} is now ${data.role}.`);
   };
 
   const approve = async (member: Member) => {
@@ -156,7 +157,7 @@ export function MembersView() {
           member={roleTarget}
           open
           onClose={() => setRoleTarget(null)}
-          onSave={(r) => changeRole(roleTarget, r)}
+          onSave={(r) => void changeRole(roleTarget, r)}
         />
       ) : null}
       {deactivateTarget ? (
