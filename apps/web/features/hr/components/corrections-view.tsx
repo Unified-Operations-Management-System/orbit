@@ -123,7 +123,7 @@ export function CorrectionsView({ initialQuery = "" }: { initialQuery?: string }
         <table className="w-full text-left">
           <thead>
             <tr className="text-xs uppercase tracking-[0.12em] text-muted">
-              <th className={`py-2 font-bold ${stickyHeadCell}`}>Employee</th>
+              {canReview ? <th className={`py-2 font-bold ${stickyHeadCell}`}>Employee</th> : null}
               <th className={`py-2 font-bold ${stickyHeadCell}`}>Day</th>
               <th className={`py-2 font-bold ${stickyHeadCell}`}>Recorded</th>
               <th className={`py-2 font-bold ${stickyHeadCell}`}>Requested</th>
@@ -135,10 +135,15 @@ export function CorrectionsView({ initialQuery = "" }: { initialQuery?: string }
           <tbody>
             {visible.map((c) => (
               <tr key={c.id} className="border-t border-line align-top">
-                <td className="py-3 pr-4 font-medium">{c.memberName}</td>
+                {canReview ? <td className="py-3 pr-4 font-medium">{c.memberName}</td> : null}
                 <td className="whitespace-nowrap py-3 pr-4">{formatDay(c.clockIn)}</td>
                 <td className="whitespace-nowrap py-3 pr-4 text-muted">
-                  {c.punchClockIn ? formatSpan(c.punchClockIn, c.punchClockOut) : "Missing entry"}
+                  {/* Approving rewrites the punch, so afterwards it would only echo the request. */}
+                  {c.status === "Approved"
+                    ? "Updated to requested"
+                    : c.punchClockIn
+                      ? formatSpan(c.punchClockIn, c.punchClockOut)
+                      : "Missing entry"}
                 </td>
                 <td className="whitespace-nowrap py-3 pr-4 font-bold">{formatSpan(c.clockIn, c.clockOut)}</td>
                 <td className="max-w-xs py-3 pr-4">
