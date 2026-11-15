@@ -435,7 +435,8 @@ func (r correctionRepo) Save(ctx context.Context, c domain.Correction) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (id) DO UPDATE SET
 			status = excluded.status, reviewer_id = excluded.reviewer_id, reviewed_at = excluded.reviewed_at,
-			assigned_to_id = excluded.assigned_to_id`,
+			assigned_to_id = excluded.assigned_to_id,
+			time_entry_id = COALESCE(excluded.time_entry_id, hr_time_corrections.time_entry_id)`,
 		string(c.ID), string(c.OrgID), string(c.MemberID), nullStr(string(c.TimeEntryID)), nullStr(string(c.ShiftID)),
 		ts(c.ClockIn), ts(c.ClockOut), strings.TrimSpace(c.Reason), string(c.Status), b2i(c.Adjustment),
 		nullStr(string(c.AssignedToID)), nullStr(string(c.ReviewerID)), ts(c.SubmittedAt), nullTS(c.ReviewedAt))

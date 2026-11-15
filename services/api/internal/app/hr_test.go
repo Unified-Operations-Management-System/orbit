@@ -108,6 +108,12 @@ func TestHrFollowsContract(t *testing.T) {
 	if code, _ := c.do(http.MethodPost, "/hr/time-corrections/"+corr.Id+"/reject", nil); code != http.StatusConflict {
 		t.Fatalf("reject after approve: want 409, got %d", code)
 	}
+	// The approved missing entry stays linked to the punch it created.
+	code, body = c.do(http.MethodGet, "/hr/time-corrections?status=Approved", nil)
+	decode(body, &queue)
+	if code != http.StatusOK || len(queue) != 1 || queue[0].TimeEntryId == nil || *queue[0].TimeEntryId != *corr.TimeEntryId {
+		t.Fatalf("approved list: %d %+v", code, queue)
+	}
 
 	// HR Admin: employee list with filters.
 	c.token = "dev:hr-admin"
