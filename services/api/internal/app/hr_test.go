@@ -86,6 +86,20 @@ func TestHrFollowsContract(t *testing.T) {
 	if code != http.StatusOK || len(queue) != 2 {
 		t.Fatalf("supervisor queue: %d %d", code, len(queue))
 	}
+	// Reviewers see the punch and shift next to the request: the seeded late Friday punch,
+	// and only the shift for the missing Wednesday.
+	for _, q := range queue {
+		switch q.Id {
+		case "tc-sam-w-1-fri":
+			if q.PunchClockIn == nil || q.PunchClockOut == nil || q.ShiftStartsAt == nil || !q.PunchClockIn.After(*q.ShiftStartsAt) {
+				t.Fatalf("punch context for late Friday: %+v", q)
+			}
+		case corr.Id:
+			if q.PunchClockIn != nil || q.ShiftStartsAt == nil || q.ShiftEndsAt == nil {
+				t.Fatalf("shift context for missing Wednesday: %+v", q)
+			}
+		}
+	}
 	code, body = c.do(http.MethodPost, "/hr/time-corrections/"+corr.Id+"/approve", nil)
 	decode(body, &corr)
 	if code != http.StatusOK || corr.Status != oapi.CorrectionApproved || corr.TimeEntryId == nil {

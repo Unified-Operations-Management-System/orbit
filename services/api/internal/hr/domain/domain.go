@@ -159,6 +159,11 @@ type Correction struct {
 	ReviewerID   oam.MemberID
 	SubmittedAt  time.Time
 	ReviewedAt   *time.Time
+
+	// Read-only context for reviewers, filled in by the repository: the punch as it is now
+	// and the scheduled shift. Not stored on the correction.
+	PunchClockIn, PunchClockOut *time.Time
+	ShiftStartsAt, ShiftEndsAt  *time.Time
 }
 
 // Person is the slice of an OAM member that HR needs.

@@ -20,9 +20,27 @@ properties:
   clockIn:
     type: string
     format: date-time
+    description: Requested clock-in.
   clockOut:
     type: string
     format: date-time
+    description: Requested clock-out.
+  punchClockIn:
+    type: string
+    format: date-time
+    description: The punch's clock-in as recorded now, for reviewers to compare; absent when adding a missing entry.
+  punchClockOut:
+    type: string
+    format: date-time
+    description: The punch's clock-out as recorded now; absent when it was never punched out or there is no punch.
+  shiftStartsAt:
+    type: string
+    format: date-time
+    description: Start of the scheduled shift the request is for, when there is one.
+  shiftEndsAt:
+    type: string
+    format: date-time
+    description: End of the scheduled shift, when there is one.
   reason:
     type: string
   status:

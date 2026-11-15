@@ -336,21 +336,38 @@ type correctionRepo struct{ db *sql.DB }
 const correctionSelect = `
 	SELECT c.id, c.org_id, c.member_id, m.name, COALESCE(c.time_entry_id, ''), COALESCE(c.shift_id, ''),
 	       c.clock_in, c.clock_out, c.reason, c.status, c.adjustment, COALESCE(c.assigned_to_id, ''),
-	       COALESCE(c.reviewer_id, ''), c.submitted_at, c.reviewed_at
+	       COALESCE(c.reviewer_id, ''), c.submitted_at, c.reviewed_at,
+	       e.clock_in, e.clock_out, s.starts_at, s.ends_at
 	FROM hr_time_corrections c
-	JOIN members m ON m.id = c.member_id AND m.org_id = c.org_id`
+	JOIN members m ON m.id = c.member_id AND m.org_id = c.org_id
+	LEFT JOIN hr_time_entries e ON e.id = c.time_entry_id
+	LEFT JOIN hr_shifts s ON s.id = COALESCE(c.shift_id, e.shift_id)`
 
 func scanCorrection(r scanner) (domain.Correction, error) {
 	var (
-		c                                      domain.Correction
-		id, org, member, entry, shift, in, out string
-		status, assigned, reviewer, submitted  string
-		adjustment                             int
-		reviewed                               sql.NullString
+		c                                       domain.Correction
+		id, org, member, entry, shift, in, out  string
+		status, assigned, reviewer, submitted   string
+		adjustment                              int
+		reviewed                                sql.NullString
+		punchIn, punchOut, shiftStart, shiftEnd sql.NullString
 	)
 	if err := r.Scan(&id, &org, &member, &c.MemberName, &entry, &shift, &in, &out, &c.Reason, &status, &adjustment,
-		&assigned, &reviewer, &submitted, &reviewed); err != nil {
+		&assigned, &reviewer, &submitted, &reviewed, &punchIn, &punchOut, &shiftStart, &shiftEnd); err != nil {
 		return c, err
+	}
+	for _, f := range []struct {
+		src sql.NullString
+		dst **time.Time
+	}{{punchIn, &c.PunchClockIn}, {punchOut, &c.PunchClockOut}, {shiftStart, &c.ShiftStartsAt}, {shiftEnd, &c.ShiftEndsAt}} {
+		if !f.src.Valid {
+			continue
+		}
+		t, err := parseTS(f.src.String)
+		if err != nil {
+			return c, err
+		}
+		*f.dst = &t
 	}
 	c.ID, c.OrgID, c.MemberID = domain.CorrectionID(id), oam.OrgID(org), oam.MemberID(member)
 	c.TimeEntryID, c.ShiftID, c.Status = domain.EntryID(entry), domain.ShiftID(shift), domain.CorrectionStatus(status)

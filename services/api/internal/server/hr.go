@@ -365,6 +365,7 @@ func toCorrection(c domain.Correction) oapi.TimeCorrection {
 		ShiftId: optional(string(c.ShiftID)), ClockIn: c.ClockIn, ClockOut: c.ClockOut, Reason: c.Reason,
 		Status: oapi.TimeCorrectionStatus(c.Status), Adjustment: c.Adjustment, AssignedToId: optional(string(c.AssignedToID)),
 		ReviewerId: optional(string(c.ReviewerID)), SubmittedAt: c.SubmittedAt, ReviewedAt: c.ReviewedAt,
+		PunchClockIn: c.PunchClockIn, PunchClockOut: c.PunchClockOut, ShiftStartsAt: c.ShiftStartsAt, ShiftEndsAt: c.ShiftEndsAt,
 	}
 }
 

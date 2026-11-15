@@ -960,10 +960,36 @@ export interface components {
             /** @description The punch to fix; absent when adding a missing entry. */
             timeEntryId?: string;
             shiftId?: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Requested clock-in.
+             */
             clockIn: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Requested clock-out.
+             */
             clockOut: string;
+            /**
+             * Format: date-time
+             * @description The punch's clock-in as recorded now, for reviewers to compare; absent when adding a missing entry.
+             */
+            punchClockIn?: string;
+            /**
+             * Format: date-time
+             * @description The punch's clock-out as recorded now; absent when it was never punched out or there is no punch.
+             */
+            punchClockOut?: string;
+            /**
+             * Format: date-time
+             * @description Start of the scheduled shift the request is for, when there is one.
+             */
+            shiftStartsAt?: string;
+            /**
+             * Format: date-time
+             * @description End of the scheduled shift, when there is one.
+             */
+            shiftEndsAt?: string;
             reason: string;
             status: components["schemas"]["TimeCorrectionStatus"];
             /** @description The work was in a closed pay period, so it posts as an adjustment. */
