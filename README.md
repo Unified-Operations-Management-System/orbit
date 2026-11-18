@@ -205,6 +205,9 @@ survives restarts; `pnpm db:reset` starts over. Adding tables for your area:
 | API docs (interactive) | http://localhost:8080/docs |
 | Mobile (Metro bundler) | :8081, see [Mobile development](#mobile-development) |
 
+Choose **Owner** at the prototype sign-in screen to see the in-progress **Simulation** workspace
+in the sidebar. It currently provides the grid, camera, and basic navigation controls.
+
 This opens Turborepo's terminal UI. Use the arrow keys to pick a task and see its logs,
 and `Ctrl+C` to stop everything.
 

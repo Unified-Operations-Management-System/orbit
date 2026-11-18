@@ -14,9 +14,11 @@
     "@orbit/api-client": "workspace:*",
     "@orbit/design-tokens": "workspace:*",
     "next": "16.4.1",
+    "pixi.js": "^8.23.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@orbit/tsconfig": "workspace:*",
