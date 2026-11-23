@@ -5,6 +5,7 @@ export type TimeCorrection = components["schemas"]["TimeCorrection"];
 export type CorrectionStatus = components["schemas"]["TimeCorrectionStatus"];
 export type HrEmployee = components["schemas"]["HrEmployee"];
 export type PayPeriod = components["schemas"]["PayPeriod"];
+export type Timecard = components["schemas"]["Timecard"];
 
 export const correctionStatuses: CorrectionStatus[] = ["Pending", "Approved", "Rejected", "Withdrawn"];
 
