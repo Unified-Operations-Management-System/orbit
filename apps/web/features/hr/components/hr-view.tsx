@@ -5,19 +5,24 @@ import { DashboardPage, PageHeader, Tabs } from "@/components/ui";
 import { useRole } from "@/lib/role";
 import { CorrectionsView } from "./corrections-view";
 import { EmployeesView } from "./employees-view";
+import { TimecardView } from "./timecard-view";
 
 const reviewerTabs = [
   { id: "corrections", label: "Time corrections" },
   { id: "employees", label: "Employees" },
 ];
+const employeeTabs = [
+  { id: "timecard", label: "My timecard" },
+  { id: "corrections", label: "My requests" },
+];
 
-// HR Management on the web: supervisors and the owner review their team's time here.
-// Employees clock in and request corrections in the mobile app; on the web they see
-// the status of their own requests.
+// HR Management on the web, matching the mobile app: employees see their own time here,
+// supervisors and the owner review their team's.
 export function HrView() {
   const { role } = useRole();
   const canReview = role === "owner" || role === "supervisor";
-  const [tab, setTab] = useState("corrections");
+  const tabs = canReview ? reviewerTabs : employeeTabs;
+  const [tab, setTab] = useState(tabs[0].id);
   // Set when "n to review" on an employee opens the corrections tab for them.
   const [forEmployee, setForEmployee] = useState("");
 
@@ -32,16 +37,16 @@ export function HrView() {
       header={
         <>
           <PageHeader eyebrow="HR Management" title="Time and attendance" />
-          {canReview ? (
-            <div className="mb-6">
-              <Tabs tabs={reviewerTabs} value={tab} onChange={setTab} />
-            </div>
-          ) : null}
+          <div className="mb-6">
+            <Tabs tabs={tabs} value={tab} onChange={setTab} />
+          </div>
         </>
       }
     >
       {canReview && tab === "employees" ? (
         <EmployeesView onReviewCorrections={reviewCorrections} />
+      ) : !canReview && tab === "timecard" ? (
+        <TimecardView />
       ) : (
         <CorrectionsView key={forEmployee} initialQuery={forEmployee} />
       )}
