@@ -46,7 +46,11 @@ export function TimecardView() {
         ...timecard.missedShifts.map((s) => ({ at: s.startsAt, missed: s })),
       ].sort((a, b) => a.at.localeCompare(b.at))
     : [];
-  const missing = lines.filter((l) => l.missed).length;
+  const pendingFor = (l: Line) =>
+    timecard?.corrections.find(
+      (c) => c.status === "Pending" && (l.entry ? c.timeEntryId === l.entry.id : !c.timeEntryId && c.shiftId === l.missed?.id),
+    );
+  const missing = lines.filter((l) => l.missed && !pendingFor(l)).length;
   const closed = timecard?.payPeriod.status === "Closed";
 
   return (
@@ -91,6 +95,7 @@ export function TimecardView() {
           <tbody>
             {lines.map((l) => {
               const e = l.entry;
+              const pending = pendingFor(l);
               return (
                 <tr key={e?.id ?? l.missed!.id} className="border-t border-line">
                   <td className="py-3 pr-4 font-medium">{formatDay(l.at)}</td>
@@ -99,7 +104,8 @@ export function TimecardView() {
                   <td className="py-3 pr-4 text-right tabular-nums">{e?.clockOut ? formatHours(e.hours) : ""}</td>
                   <td className="py-3 pl-6">
                     <span className="flex flex-wrap gap-3">
-                      {l.missed ? <Flag shape="square" color={colors.red} text="text-red" label="Missing punch" /> : null}
+                      {pending ? <Flag shape="circle" color={colors.blue} text="text-blue" label="Correction pending" /> : null}
+                      {l.missed && !pending ? <Flag shape="square" color={colors.red} text="text-red" label="Missing punch" /> : null}
                       {e?.late ? <Flag shape="triangle" color={colors.yellow} text="text-ink" label="Late" /> : null}
                       {e?.earlyOut ? <Flag shape="triangle" color={colors.yellow} text="text-ink" label="Left early" /> : null}
                       {e?.source === "Correction" ? <span className="text-sm text-muted">Corrected</span> : null}
