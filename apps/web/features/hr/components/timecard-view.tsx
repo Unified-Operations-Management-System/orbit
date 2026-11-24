@@ -166,6 +166,7 @@ export function TimecardView() {
         <RequestDialog
           entry={open.entry}
           shift={open.missed}
+          closed={closed}
           onClose={() => setOpen(null)}
           onDone={(message) => {
             setOpen(null);

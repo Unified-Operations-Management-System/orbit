@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, Dialog, Input, Textarea } from "@/components/ui";
+import { Alert, Button, Checkbox, Dialog, Input, Textarea } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
 import { problemMessage, type Timecard } from "../api";
@@ -27,15 +27,17 @@ const at = (dayIso: string, time: string) => {
 
 // The correction form on the web (UC-HR-04 steps 4-9, same rules as the mobile form): fix a
 // punch's times or add a punch for a missed shift, with a reason. The API checks the times,
-// and overlaps; the form shows its answer.
+// overlaps and the closed-period acknowledgement; the form shows its answer.
 export function RequestDialog({
   entry,
   shift,
+  closed,
   onDone,
   onClose,
 }: {
   entry?: Entry;
   shift?: Shift;
+  closed: boolean;
   onDone: (message: string) => void;
   onClose: () => void;
 }) {
@@ -44,13 +46,14 @@ export function RequestDialog({
   const [clockIn, setClockIn] = useState(hhmm(entry?.clockIn ?? shift?.startsAt));
   const [clockOut, setClockOut] = useState(hhmm(entry?.clockOut ?? shift?.endsAt));
   const [reason, setReason] = useState("");
+  const [ack, setAck] = useState(false);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
   const send = async () => {
     setTried(true);
-    if (!role || !clockIn || !clockOut || !reason.trim()) return;
+    if (!role || !clockIn || !clockOut || !reason.trim() || (closed && !ack)) return;
     setBusy(true);
     const { error } = await browserApi.POST("/hr/time-corrections", {
       headers: authHeaders(role),
@@ -59,6 +62,7 @@ export function RequestDialog({
         clockIn: at(day, clockIn),
         clockOut: at(day, clockOut),
         reason: reason.trim(),
+        ...(closed ? { acknowledgeAdjustment: ack } : {}),
       },
     });
     setBusy(false);
@@ -74,6 +78,11 @@ export function RequestDialog({
         <p className="text-muted">
           {shift ? `Scheduled ${formatSpan(shift.startsAt, shift.endsAt)}. Enter the times you actually worked.` : `Recorded ${original}.`}
         </p>
+        {closed ? (
+          <Alert tone="warning" title="This pay period was already paid">
+            If approved, the change posts as an adjustment in the current pay period.
+          </Alert>
+        ) : null}
         <div className="grid grid-cols-2 gap-3">
           <Input label="Clock in" type="time" value={clockIn} onChange={(e) => setClockIn(e.target.value)} error={tried && !clockIn ? "Required" : undefined} />
           <Input label="Clock out" type="time" value={clockOut} onChange={(e) => setClockOut(e.target.value)} error={tried && !clockOut ? "Required" : undefined} />
@@ -86,6 +95,12 @@ export function RequestDialog({
           onChange={(e) => setReason(e.target.value)}
           error={tried && !reason.trim() ? "A reason is required." : undefined}
         />
+        {closed ? (
+          <div>
+            <Checkbox label="I understand, post it as an adjustment" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+            {tried && !ack ? <p className="mt-1 text-sm text-red">Confirm the adjustment to continue.</p> : null}
+          </div>
+        ) : null}
         {error ? <Alert tone="error" title={error} /> : null}
       </div>
       <div className="flex justify-end gap-2">
