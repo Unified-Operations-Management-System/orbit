@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Alert, Button, Checkbox, Dialog, Input, Textarea } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
-import { problemMessage, type Timecard } from "../api";
+import { problemMessage, type TimeCorrection, type Timecard } from "../api";
 import { formatDay, formatSpan } from "../format";
 
 type Entry = Timecard["entries"][number];
@@ -31,12 +31,14 @@ const at = (dayIso: string, time: string) => {
 export function RequestDialog({
   entry,
   shift,
+  pending,
   closed,
   onDone,
   onClose,
 }: {
   entry?: Entry;
   shift?: Shift;
+  pending?: TimeCorrection;
   closed: boolean;
   onDone: (message: string) => void;
   onClose: () => void;
@@ -70,7 +72,48 @@ export function RequestDialog({
     onDone(`Correction for ${formatDay(day)} sent to your supervisor.`);
   };
 
+  const withdraw = async () => {
+    if (!role || !pending) return;
+    setBusy(true);
+    const { error } = await browserApi.POST("/hr/time-corrections/{correctionId}/withdraw", {
+      headers: authHeaders(role),
+      params: { path: { correctionId: pending.id } },
+    });
+    setBusy(false);
+    if (error) return setError(problemMessage(error));
+    onDone(`Correction for ${formatDay(day)} withdrawn.`);
+  };
+
   const original = entry ? formatSpan(entry.clockIn, entry.clockOut) : "No punch";
+
+  // Ext 3.b: one pending request per punch, which can be withdrawn.
+  if (pending) {
+    return (
+      <Dialog open onClose={onClose} title={`Correction for ${formatDay(day)}`}>
+        <div className="mb-4 flex flex-col gap-3">
+          <Alert tone="info" title="Waiting for your supervisor" />
+          <p>
+            <span className="text-muted">Recorded:</span> {original}
+          </p>
+          <p>
+            <span className="text-muted">Requested:</span> <span className="font-bold">{formatSpan(pending.clockIn, pending.clockOut)}</span>
+          </p>
+          <p>
+            <span className="text-muted">Reason:</span> {pending.reason}
+          </p>
+          {error ? <Alert tone="error" title={error} /> : null}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Close
+          </Button>
+          <Button variant="secondary" onClick={() => void withdraw()} disabled={busy}>
+            Withdraw request
+          </Button>
+        </div>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open onClose={onClose} title={shift ? `Add missing punch, ${formatDay(day)}` : `Fix times, ${formatDay(day)}`}>

@@ -151,8 +151,8 @@ export function TimecardView() {
                     </span>
                   </td>
                   <td className="py-2 text-right">
-                    <Button variant={l.missed ? "primary" : "secondary"} onClick={() => setOpen(l)}>
-                      {l.missed ? "Add missing punch" : "Fix times"}
+                    <Button variant={l.missed && !pending ? "primary" : "secondary"} onClick={() => setOpen(l)}>
+                      {pending ? "View request" : l.missed ? "Add missing punch" : "Fix times"}
                     </Button>
                   </td>
                 </tr>
@@ -166,6 +166,7 @@ export function TimecardView() {
         <RequestDialog
           entry={open.entry}
           shift={open.missed}
+          pending={pendingFor(open)}
           closed={closed}
           onClose={() => setOpen(null)}
           onDone={(message) => {
