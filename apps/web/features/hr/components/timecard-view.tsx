@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { colors } from "@orbit/design-tokens";
-import { Alert, EmptyState, Panel, Shape, StatCard, stickyHeadCell } from "@/components/ui";
+import { Alert, EmptyState, Panel, Select, Shape, StatCard, stickyHeadCell } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
-import { problemMessage, type Timecard } from "../api";
+import { problemMessage, type PayPeriod, type Timecard } from "../api";
 import { formatDay, formatHours, formatPeriod, formatTime, roundHours } from "../format";
 
 type Line = { at: string; entry?: Timecard["entries"][number]; missed?: Timecard["missedShifts"][number] };
@@ -23,13 +23,27 @@ function Flag({ shape, color, text, label }: { shape: "circle" | "triangle" | "s
 // missed shifts for a pay period, with hours, overtime and missing punches.
 export function TimecardView() {
   const { role } = useRole();
+  const [periods, setPeriods] = useState<PayPeriod[]>([]);
+  const [periodId, setPeriodId] = useState("current");
   const [timecard, setTimecard] = useState<Timecard>();
   const [loadError, setLoadError] = useState<string>();
 
   useEffect(() => {
     if (!role) return;
     let live = true;
-    void browserApi.GET("/hr/timecard", { headers: authHeaders(role) }).then(({ data, error }) => {
+    void browserApi.GET("/hr/pay-periods", { headers: authHeaders(role) }).then(({ data }) => {
+      if (live && data) setPeriods(data.filter((p) => new Date(p.startsAt) <= new Date()).reverse());
+    });
+    return () => {
+      live = false;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    if (!role) return;
+    let live = true;
+    const query = periodId === "current" ? {} : { payPeriodId: periodId };
+    void browserApi.GET("/hr/timecard", { headers: authHeaders(role), params: { query } }).then(({ data, error }) => {
       if (!live) return;
       if (error) return setLoadError(problemMessage(error));
       setLoadError(undefined);
@@ -38,7 +52,7 @@ export function TimecardView() {
     return () => {
       live = false;
     };
-  }, [role]);
+  }, [role, periodId]);
 
   const lines: Line[] = timecard
     ? [
@@ -59,6 +73,20 @@ export function TimecardView() {
       className="flex-1"
       filters={
         <>
+          <div className="mb-4 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Select
+              label="Pay period"
+              value={periodId}
+              onChange={setPeriodId}
+              options={[
+                { value: "current", label: "This pay period" },
+                // Earlier periods; the one running now is "This pay period".
+                ...periods
+                  .filter((p) => new Date(p.endsAt) <= new Date())
+                  .map((p) => ({ value: p.id, label: `${formatPeriod(p.startsAt, p.endsAt)}${p.status === "Closed" ? " (paid)" : ""}` })),
+              ]}
+            />
+          </div>
           {timecard ? (
             <>
               <div className="mb-4 grid gap-4 sm:grid-cols-3">
