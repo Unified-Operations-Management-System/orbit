@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { colors } from "@orbit/design-tokens";
-import { Alert, EmptyState, Panel, Select, Shape, StatCard, stickyHeadCell } from "@/components/ui";
+import { Alert, Button, EmptyState, Panel, Select, Shape, StatCard, stickyHeadCell } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
 import { problemMessage, type PayPeriod, type Timecard } from "../api";
 import { formatDay, formatHours, formatPeriod, formatTime, roundHours } from "../format";
+import { RequestDialog } from "./request-dialog";
 
 type Line = { at: string; entry?: Timecard["entries"][number]; missed?: Timecard["missedShifts"][number] };
 
@@ -27,6 +28,10 @@ export function TimecardView() {
   const [periodId, setPeriodId] = useState("current");
   const [timecard, setTimecard] = useState<Timecard>();
   const [loadError, setLoadError] = useState<string>();
+  const [open, setOpen] = useState<Line | null>(null);
+  const [notice, setNotice] = useState<string>();
+  // Bumped after a request is sent or withdrawn, to reload the timecard.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!role) return;
@@ -52,7 +57,7 @@ export function TimecardView() {
     return () => {
       live = false;
     };
-  }, [role, periodId]);
+  }, [role, periodId, version]);
 
   const lines: Line[] = timecard
     ? [
@@ -103,6 +108,11 @@ export function TimecardView() {
         </>
       }
     >
+      {notice ? (
+        <div className="mb-3">
+          <Alert tone="success" title={notice} />
+        </div>
+      ) : null}
       {loadError ? (
         <Alert tone="error" title={`Couldn't load your timecard: ${loadError}`} />
       ) : !timecard ? (
@@ -118,6 +128,7 @@ export function TimecardView() {
               <th className={`py-2 font-bold ${stickyHeadCell}`}>Out</th>
               <th className={`py-2 text-right font-bold ${stickyHeadCell}`}>Hours</th>
               <th className={`py-2 pl-6 font-bold ${stickyHeadCell}`}>Notes</th>
+              <th className={`py-2 ${stickyHeadCell}`} />
             </tr>
           </thead>
           <tbody>
@@ -139,12 +150,30 @@ export function TimecardView() {
                       {e?.source === "Correction" ? <span className="text-sm text-muted">Corrected</span> : null}
                     </span>
                   </td>
+                  <td className="py-2 text-right">
+                    <Button variant={l.missed ? "primary" : "secondary"} onClick={() => setOpen(l)}>
+                      {l.missed ? "Add missing punch" : "Fix times"}
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       )}
+
+      {open && timecard ? (
+        <RequestDialog
+          entry={open.entry}
+          shift={open.missed}
+          onClose={() => setOpen(null)}
+          onDone={(message) => {
+            setOpen(null);
+            setNotice(message);
+            setVersion((v) => v + 1);
+          }}
+        />
+      ) : null}
     </Panel>
   );
 }
