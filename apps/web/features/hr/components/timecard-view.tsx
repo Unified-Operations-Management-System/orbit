@@ -82,7 +82,10 @@ export function TimecardView() {
             <Select
               label="Pay period"
               value={periodId}
-              onChange={setPeriodId}
+              onChange={(id) => {
+                setPeriodId(id);
+                setNotice(undefined);
+              }}
               options={[
                 { value: "current", label: "This pay period" },
                 // Earlier periods; the one running now is "This pay period".
