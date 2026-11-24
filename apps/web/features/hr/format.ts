@@ -24,5 +24,8 @@ export const formatPeriod = (startsAt: string, endsAt: string) =>
 /** Hours between two instants, to one decimal. */
 export const hoursBetween = (from: string, to: string) => Math.round(((new Date(to).getTime() - new Date(from).getTime()) / 36e5) * 10) / 10;
 
+/** "38.5", always one decimal so columns line up. */
+export const roundHours = (h: number) => h.toFixed(1);
+
 /** "38.5 h" */
-export const formatHours = (h: number) => `${Number.isInteger(h) ? h : h.toFixed(1)} h`;
+export const formatHours = (h: number) => `${roundHours(h)} h`;
