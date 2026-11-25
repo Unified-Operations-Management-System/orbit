@@ -16,6 +16,9 @@ export default function Home() {
   const { data: clock } = $api.useQuery("get", "/hr/clock");
   const open = clock?.openEntry;
   const shift = clock?.shift;
+  // Supervisors and the owner also review their team's correction requests.
+  const canReview = role === "owner" || role === "supervisor";
+  const { data: queue } = $api.useQuery("get", "/hr/time-corrections", { params: { query: { status: "Pending" } } }, { enabled: canReview });
 
   return (
     <SafeAreaView edges={["top"]} style={styles.flex}>
@@ -36,6 +39,14 @@ export default function Home() {
             right={<T>→</T>}
             onPress={() => router.push("/hr/timecard")}
           />
+          {canReview ? (
+            <ListRow
+              title="Approvals"
+              subtitle={queue ? `${queue.length} correction ${queue.length === 1 ? "request" : "requests"} waiting` : "Correction requests from your team"}
+              right={<T>→</T>}
+              onPress={() => router.push("/hr/approvals")}
+            />
+          ) : null}
         </View>
         <T variant="h2" style={{ marginTop: space[4] }}>My tasks</T>
         <View style={styles.list}>
