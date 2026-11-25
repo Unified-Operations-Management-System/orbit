@@ -93,7 +93,7 @@ export function CorrectionsView({ initialQuery = "" }: { initialQuery?: string }
           </div>
           <p className="text-muted">
             {status === "Pending" ? `${pending} waiting for review` : `Showing ${visible.length} request${visible.length === 1 ? "" : "s"}`}
-            {canReview ? "" : ". Request corrections from the timecard in the mobile app."}
+            {canReview ? "" : ". Send a new request from My timecard."}
           </p>
         </>
       }
@@ -113,7 +113,7 @@ export function CorrectionsView({ initialQuery = "" }: { initialQuery?: string }
           title={!canReview ? "No correction requests" : status === "Pending" ? "Nothing waiting for review" : "No matching requests"}
           body={
             !canReview
-              ? "Requests you send from your timecard in the mobile app show up here with their status."
+              ? "Requests you send from My timecard, here or in the mobile app, show up here with their status."
               : status === "Pending"
                 ? "New correction requests from your team show up here."
                 : "Try a different status or name."
