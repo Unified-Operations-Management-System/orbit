@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { View } from "react-native";
 
 import { Alert, Button, Card, T } from "@/components/ui";
-import { problemMessage, useRefreshHr } from "@/features/hr/api";
+import { problemMessage, useRefreshHr, type TimeCorrection } from "@/features/hr/api";
 import { formatDay, formatHours, formatTime, hoursBetween } from "@/features/hr/format";
 import { HrScreen, Row, hrStyles } from "@/features/hr/hr-screen";
 import { $api } from "@/lib/api";
@@ -18,7 +19,9 @@ export default function ReviewCorrection() {
   const list = $api.useQuery("get", "/hr/time-corrections", {});
   const approve = $api.useMutation("post", "/hr/time-corrections/{correctionId}/approve", { onSuccess: refresh });
   const reject = $api.useMutation("post", "/hr/time-corrections/{correctionId}/reject", { onSuccess: refresh });
-  const c = list.data?.find((x) => x.id === correctionId);
+  // Approving rewrites the punch, so once decided keep showing the request as it was reviewed.
+  const [reviewed, setReviewed] = useState<TimeCorrection>();
+  const c = reviewed ?? list.data?.find((x) => x.id === correctionId);
   const busy = approve.isPending || reject.isPending;
   const done = approve.data ?? reject.data;
   const failed = approve.error ?? reject.error;
@@ -72,13 +75,19 @@ export default function ReviewCorrection() {
             large
             title={approve.isPending ? "Approving…" : "Approve"}
             disabled={busy}
-            onPress={() => approve.mutate(params)}
+            onPress={() => {
+              setReviewed(c);
+              approve.mutate(params);
+            }}
           />
           <Button
             variant="secondary"
             title={reject.isPending ? "Rejecting…" : "Reject"}
             disabled={busy}
-            onPress={() => reject.mutate(params)}
+            onPress={() => {
+              setReviewed(c);
+              reject.mutate(params);
+            }}
           />
         </View>
       )}
