@@ -23,6 +23,7 @@ func classify(err error) (int, oapi.Problem) {
 		ve      domain.ValidationError
 		early   domain.TooEarlyError
 		overlap domain.OverlapError
+		clash   domain.ShiftOverlapError
 	)
 	field := func(loc, msg string) oapi.Problem {
 		p := problem(http.StatusUnprocessableEntity, errors.New("validation failed"))
@@ -35,12 +36,15 @@ func classify(err error) (int, oapi.Problem) {
 	case errors.Is(err, domain.ErrForbidden), errors.Is(err, domain.ErrSelfApproval):
 		return http.StatusForbidden, problem(http.StatusForbidden, err)
 	case errors.As(err, &early), errors.Is(err, domain.ErrAlreadyClockedIn), errors.Is(err, domain.ErrNotClockedIn),
-		errors.Is(err, domain.ErrPeriodClosed), errors.Is(err, domain.ErrPendingExists), errors.Is(err, domain.ErrNotPending):
+		errors.Is(err, domain.ErrPeriodClosed), errors.Is(err, domain.ErrPendingExists), errors.Is(err, domain.ErrNotPending),
+		errors.Is(err, domain.ErrShiftStarted), errors.Is(err, domain.ErrShiftPublished), errors.Is(err, domain.ErrNotSchedulable):
 		return http.StatusConflict, problem(http.StatusConflict, err)
 	case errors.As(err, &ve):
 		return http.StatusUnprocessableEntity, field("body."+ve.Field, ve.Message)
 	case errors.As(err, &overlap):
 		return http.StatusUnprocessableEntity, field("body.clockIn", overlap.Error())
+	case errors.As(err, &clash):
+		return http.StatusUnprocessableEntity, field("body.startsAt", clash.Error())
 	case errors.Is(err, domain.ErrAdjustmentNotAcked):
 		return http.StatusUnprocessableEntity, field("body.acknowledgeAdjustment", err.Error())
 	}
