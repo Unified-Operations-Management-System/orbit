@@ -5,9 +5,11 @@ import { DashboardPage, PageHeader, Tabs } from "@/components/ui";
 import { useRole } from "@/lib/role";
 import { CorrectionsView } from "./corrections-view";
 import { EmployeesView } from "./employees-view";
+import { ScheduleView } from "./schedule-view";
 import { TimecardView } from "./timecard-view";
 
 const reviewerTabs = [
+  { id: "schedule", label: "Schedule" },
   { id: "corrections", label: "Time corrections" },
   { id: "employees", label: "Employees" },
 ];
@@ -17,7 +19,7 @@ const employeeTabs = [
 ];
 
 // HR Management on the web, matching the mobile app: employees see their own time here,
-// supervisors and the owner review their team's.
+// supervisors and the owner build the schedule and review their team's time.
 export function HrView() {
   const { role } = useRole();
   const canReview = role === "owner" || role === "supervisor";
@@ -43,7 +45,9 @@ export function HrView() {
         </>
       }
     >
-      {canReview && tab === "employees" ? (
+      {canReview && tab === "schedule" ? (
+        <ScheduleView />
+      ) : canReview && tab === "employees" ? (
         <EmployeesView onReviewCorrections={reviewCorrections} />
       ) : !canReview && tab === "timecard" ? (
         <TimecardView />
