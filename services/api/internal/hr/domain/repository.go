@@ -57,6 +57,12 @@ type EmployeeFilter struct {
 type ShiftRepository interface {
 	List(ctx context.Context, f ShiftFilter) ([]Shift, error)
 	Get(ctx context.Context, org oam.OrgID, id ShiftID) (Shift, error)
+	// Save inserts or updates a shift.
+	Save(ctx context.Context, sh Shift) error
+	// Delete removes a shift; ErrNotFound if it doesn't exist.
+	Delete(ctx context.Context, org oam.OrgID, id ShiftID) error
+	// Publish makes every draft matching f visible to employees and returns how many.
+	Publish(ctx context.Context, f ShiftFilter, at time.Time) (int, error)
 }
 
 // TimeOffRepository reads hr_time_off.

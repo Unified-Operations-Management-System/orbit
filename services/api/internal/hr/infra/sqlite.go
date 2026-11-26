@@ -172,6 +172,58 @@ func (r shiftRepo) Get(ctx context.Context, org oam.OrgID, id domain.ShiftID) (d
 	return sh, err
 }
 
+func (r shiftRepo) Save(ctx context.Context, sh domain.Shift) error {
+	_, err := db.Q(ctx, r.db).ExecContext(ctx, `
+		INSERT INTO hr_shifts (id, org_id, member_id, team_id, starts_at, ends_at, station, notes, published_at, change_note, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (id) DO UPDATE SET
+			member_id = excluded.member_id, team_id = excluded.team_id, starts_at = excluded.starts_at,
+			ends_at = excluded.ends_at, station = excluded.station, notes = excluded.notes,
+			published_at = excluded.published_at, change_note = excluded.change_note, updated_at = excluded.updated_at`,
+		string(sh.ID), string(sh.OrgID), string(sh.MemberID), nullStr(string(sh.TeamID)), ts(sh.StartsAt), ts(sh.EndsAt),
+		strings.TrimSpace(sh.Station), strings.TrimSpace(sh.Notes), nullTS(sh.PublishedAt), nullStr(sh.ChangeNote), ts(sh.UpdatedAt))
+	if err != nil {
+		return fmt.Errorf("save shift: %w", err)
+	}
+	return nil
+}
+
+func (r shiftRepo) Delete(ctx context.Context, org oam.OrgID, id domain.ShiftID) error {
+	res, err := db.Q(ctx, r.db).ExecContext(ctx, `DELETE FROM hr_shifts WHERE org_id = ? AND id = ?`, string(org), string(id))
+	if err != nil {
+		return fmt.Errorf("delete shift: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+// Publish uses the same scope and filters as List, limited to drafts.
+func (r shiftRepo) Publish(ctx context.Context, f domain.ShiftFilter, at time.Time) (int, error) {
+	var w where
+	w.scope(f.Scope)
+	if f.TeamID != "" {
+		w.add("s.team_id = ?", string(f.TeamID))
+	}
+	if !f.From.IsZero() {
+		w.add("s.starts_at >= ?", ts(f.From))
+	}
+	if !f.To.IsZero() {
+		w.add("s.starts_at < ?", ts(f.To))
+	}
+	w.add("s.published_at IS NULL")
+	res, err := db.Q(ctx, r.db).ExecContext(ctx, `
+		UPDATE hr_shifts SET published_at = ?, updated_at = ?
+		WHERE id IN (SELECT s.id FROM hr_shifts s JOIN members m ON m.id = s.member_id AND m.org_id = s.org_id WHERE `+w.sql()+`)`,
+		append([]any{ts(at), ts(at)}, w.args...)...)
+	if err != nil {
+		return 0, fmt.Errorf("publish shifts: %w", err)
+	}
+	n, err := res.RowsAffected()
+	return int(n), err
+}
+
 // ---------- time off ----------
 
 type timeOffRepo struct{ db *sql.DB }
