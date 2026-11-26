@@ -57,6 +57,8 @@ paths:
     $ref: paths/hr/clock-out.yaml
   /hr/shifts:
     $ref: paths/hr/shifts.yaml
+  /hr/shifts/publish:
+    $ref: paths/hr/shifts-publish.yaml
   /hr/shifts/{shiftId}:
     $ref: paths/hr/shift.yaml
   /hr/timecard:

@@ -1,0 +1,17 @@
+title: UpdateShiftRequest
+type: object
+description: Fields to change on a shift; anything left out stays as it is.
+properties:
+  startsAt:
+    type: string
+    format: date-time
+  endsAt:
+    type: string
+    format: date-time
+  station:
+    type: string
+    minLength: 1
+    maxLength: 80
+  notes:
+    type: string
+    maxLength: 500

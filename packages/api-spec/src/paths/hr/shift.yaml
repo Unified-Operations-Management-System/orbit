@@ -23,3 +23,60 @@ get:
       $ref: ../../components/responses/NotFound.yaml
     default:
       $ref: ../../components/responses/UnexpectedError.yaml
+patch:
+  operationId: updateShift
+  summary: Change a shift
+  description: |
+    Changes a shift's times, station or notes until clock-in opens for it (then 409). On a
+    published shift the employee sees what changed, e.g. "Moved from Mon 7:00 AM – 3:00 PM to
+    Mon 9:00 AM – 5:00 PM". Same rules and errors as scheduling a shift.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/hr/UpdateShiftRequest.yaml
+  responses:
+    "200":
+      description: The changed shift.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/Shift.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml
+delete:
+  operationId: deleteShift
+  summary: Delete a draft shift
+  description: |
+    Removes a shift that hasn't been published. A published shift can't be deleted (409);
+    change it instead so the employee is told.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  responses:
+    "204":
+      description: Deleted.
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

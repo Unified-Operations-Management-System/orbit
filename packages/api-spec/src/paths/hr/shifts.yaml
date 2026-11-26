@@ -48,3 +48,40 @@ get:
       $ref: ../../components/responses/ValidationFailed.yaml
     default:
       $ref: ../../components/responses/UnexpectedError.yaml
+post:
+  operationId: createShift
+  summary: Schedule a shift
+  description: |
+    Adds a draft shift for one employee (SCRUM-14). Supervisors schedule their own team; the
+    owner and HR administrators the company; employees get 403. Employees see the shift only
+    after it is published. 404 if the caller can't see the employee, 409 if they aren't active,
+    422 if the times are invalid, longer than the company's longest shift, in the past, or
+    overlap another shift of the same employee.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/hr/CreateShiftRequest.yaml
+  responses:
+    "201":
+      description: The draft shift.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/Shift.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/NotFound.yaml
+    "409":
+      $ref: ../../components/responses/Conflict.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

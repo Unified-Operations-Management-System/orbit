@@ -1,0 +1,24 @@
+title: CreateShiftRequest
+type: object
+description: A new draft shift for one employee.
+required: [memberId, startsAt, endsAt, station]
+properties:
+  memberId:
+    type: string
+    description: The employee (an OAM member) to schedule.
+    examples: [m-3]
+  startsAt:
+    type: string
+    format: date-time
+  endsAt:
+    type: string
+    format: date-time
+  station:
+    type: string
+    minLength: 1
+    maxLength: 80
+    examples: [Packing Line 2]
+  notes:
+    type: string
+    maxLength: 500
+    description: Notes for the employee, shown on the shift.

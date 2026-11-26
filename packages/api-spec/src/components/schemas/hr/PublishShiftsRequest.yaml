@@ -1,0 +1,14 @@
+title: PublishShiftsRequest
+type: object
+description: Publish the drafts that start in [from, to), by default the week starting at from.
+required: [from]
+properties:
+  from:
+    type: string
+    format: date-time
+  to:
+    type: string
+    format: date-time
+  teamId:
+    type: string
+    description: Only this team's drafts.

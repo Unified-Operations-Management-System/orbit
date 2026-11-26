@@ -1,0 +1,30 @@
+post:
+  operationId: publishShifts
+  summary: Publish the schedule
+  description: |
+    Makes the caller's draft shifts starting in [from, to) visible to employees (SCRUM-14),
+    within the caller's scope and optionally one team. Returns how many were published.
+  tags: [hr]
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/hr/PublishShiftsRequest.yaml
+  responses:
+    "200":
+      description: How many shifts were published.
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/schemas/hr/PublishShiftsResult.yaml
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "422":
+      $ref: ../../components/responses/ValidationFailed.yaml
+    default:
+      $ref: ../../components/responses/UnexpectedError.yaml

@@ -1,0 +1,9 @@
+title: PublishShiftsResult
+type: object
+required: [published]
+properties:
+  published:
+    type: integer
+    minimum: 0
+    description: How many draft shifts were published.
+    examples: [12]

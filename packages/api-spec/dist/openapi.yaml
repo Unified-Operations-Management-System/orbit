@@ -530,6 +530,76 @@ paths:
           $ref: '#/components/responses/ValidationFailed'
         default:
           $ref: '#/components/responses/UnexpectedError'
+    post:
+      operationId: createShift
+      summary: Schedule a shift
+      description: |
+        Adds a draft shift for one employee (SCRUM-14). Supervisors schedule their own team; the
+        owner and HR administrators the company; employees get 403. Employees see the shift only
+        after it is published. 404 if the caller can't see the employee, 409 if they aren't active,
+        422 if the times are invalid, longer than the company's longest shift, in the past, or
+        overlap another shift of the same employee.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShiftRequest'
+      responses:
+        '201':
+          description: The draft shift.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /hr/shifts/publish:
+    post:
+      operationId: publishShifts
+      summary: Publish the schedule
+      description: |
+        Makes the caller's draft shifts starting in [from, to) visible to employees (SCRUM-14),
+        within the caller's scope and optionally one team. Returns how many were published.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishShiftsRequest'
+      responses:
+        '200':
+          description: How many shifts were published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishShiftsResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
   /hr/shifts/{shiftId}:
     parameters:
       - $ref: '#/components/parameters/ShiftId'
@@ -554,6 +624,65 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    patch:
+      operationId: updateShift
+      summary: Change a shift
+      description: |
+        Changes a shift's times, station or notes until clock-in opens for it (then 409). On a
+        published shift the employee sees what changed, e.g. "Moved from Mon 7:00 AM – 3:00 PM to
+        Mon 9:00 AM – 5:00 PM". Same rules and errors as scheduling a shift.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateShiftRequest'
+      responses:
+        '200':
+          description: The changed shift.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    delete:
+      operationId: deleteShift
+      summary: Delete a draft shift
+      description: |
+        Removes a shift that hasn't been published. A published shift can't be deleted (409);
+        change it instead so the employee is told.
+      tags:
+        - hr
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         default:
           $ref: '#/components/responses/UnexpectedError'
   /hr/timecard:
@@ -1433,6 +1562,83 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TimeOff'
+    CreateShiftRequest:
+      title: CreateShiftRequest
+      type: object
+      description: A new draft shift for one employee.
+      required:
+        - memberId
+        - startsAt
+        - endsAt
+        - station
+      properties:
+        memberId:
+          type: string
+          description: The employee (an OAM member) to schedule.
+          examples:
+            - m-3
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        station:
+          type: string
+          minLength: 1
+          maxLength: 80
+          examples:
+            - Packing Line 2
+        notes:
+          type: string
+          maxLength: 500
+          description: Notes for the employee, shown on the shift.
+    PublishShiftsRequest:
+      title: PublishShiftsRequest
+      type: object
+      description: Publish the drafts that start in [from, to), by default the week starting at from.
+      required:
+        - from
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        teamId:
+          type: string
+          description: Only this team's drafts.
+    PublishShiftsResult:
+      title: PublishShiftsResult
+      type: object
+      required:
+        - published
+      properties:
+        published:
+          type: integer
+          minimum: 0
+          description: How many draft shifts were published.
+          examples:
+            - 12
+    UpdateShiftRequest:
+      title: UpdateShiftRequest
+      type: object
+      description: Fields to change on a shift; anything left out stays as it is.
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        station:
+          type: string
+          minLength: 1
+          maxLength: 80
+        notes:
+          type: string
+          maxLength: 500
     HrEmployee:
       title: HrEmployee
       type: object

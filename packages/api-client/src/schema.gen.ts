@@ -332,7 +332,36 @@ export interface paths {
          */
         get: operations["listShifts"];
         put?: never;
-        post?: never;
+        /**
+         * Schedule a shift
+         * @description Adds a draft shift for one employee (SCRUM-14). Supervisors schedule their own team; the
+         *     owner and HR administrators the company; employees get 403. Employees see the shift only
+         *     after it is published. 404 if the caller can't see the employee, 409 if they aren't active,
+         *     422 if the times are invalid, longer than the company's longest shift, in the past, or
+         *     overlap another shift of the same employee.
+         */
+        post: operations["createShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/shifts/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the schedule
+         * @description Makes the caller's draft shifts starting in [from, to) visible to employees (SCRUM-14),
+         *     within the caller's scope and optionally one team. Returns how many were published.
+         */
+        post: operations["publishShifts"];
         delete?: never;
         options?: never;
         head?: never;
@@ -360,10 +389,21 @@ export interface paths {
         get: operations["getShift"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a draft shift
+         * @description Removes a shift that hasn't been published. A published shift can't be deleted (409);
+         *     change it instead so the employee is told.
+         */
+        delete: operations["deleteShift"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Change a shift
+         * @description Changes a shift's times, station or notes until clock-in opens for it (then 409). On a
+         *     published shift the employee sees what changed, e.g. "Moved from Mon 7:00 AM – 3:00 PM to
+         *     Mon 9:00 AM – 5:00 PM". Same rules and errors as scheduling a shift.
+         */
+        patch: operations["updateShift"];
         trace?: never;
     };
     "/hr/timecard": {
@@ -914,6 +954,57 @@ export interface components {
             to: string;
             shifts: components["schemas"]["Shift"][];
             timeOff: components["schemas"]["TimeOff"][];
+        };
+        /**
+         * CreateShiftRequest
+         * @description A new draft shift for one employee.
+         */
+        CreateShiftRequest: {
+            /**
+             * @description The employee (an OAM member) to schedule.
+             * @example m-3
+             */
+            memberId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @example Packing Line 2 */
+            station: string;
+            /** @description Notes for the employee, shown on the shift. */
+            notes?: string;
+        };
+        /**
+         * PublishShiftsRequest
+         * @description Publish the drafts that start in [from, to), by default the week starting at from.
+         */
+        PublishShiftsRequest: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to?: string;
+            /** @description Only this team's drafts. */
+            teamId?: string;
+        };
+        /** PublishShiftsResult */
+        PublishShiftsResult: {
+            /**
+             * @description How many draft shifts were published.
+             * @example 12
+             */
+            published: number;
+        };
+        /**
+         * UpdateShiftRequest
+         * @description Fields to change on a shift; anything left out stays as it is.
+         */
+        UpdateShiftRequest: {
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            station?: string;
+            notes?: string;
         };
         /**
          * HrEmployee
@@ -1667,6 +1758,64 @@ export interface operations {
             default: components["responses"]["UnexpectedError"];
         };
     };
+    createShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description The draft shift. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    publishShifts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishShiftsRequest"];
+            };
+        };
+        responses: {
+            /** @description How many shifts were published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishShiftsResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
     getShift: {
         parameters: {
             query?: never;
@@ -1693,6 +1842,71 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    deleteShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Shift ID.
+                 * @example sh-sam-w0-mon
+                 */
+                shiftId: components["parameters"]["ShiftId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["UnexpectedError"];
+        };
+    };
+    updateShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Shift ID.
+                 * @example sh-sam-w0-mon
+                 */
+                shiftId: components["parameters"]["ShiftId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description The changed shift. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
             default: components["responses"]["UnexpectedError"];
         };
     };
