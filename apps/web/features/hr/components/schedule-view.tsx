@@ -11,7 +11,7 @@ import { ShiftDialog } from "./shift-dialog";
 
 type Editing = { shift?: Shift; memberId?: string; day?: Date };
 
-// SCRUM-14: a supervisor builds the week for their team. Drafts are
+// SCRUM-14: a supervisor builds the week for their team, then publishes it. Drafts are
 // only visible to schedulers; employees see a shift once it's published (UC-HR-03).
 export function ScheduleView() {
   const { role } = useRole();
@@ -21,6 +21,7 @@ export function ScheduleView() {
   const [loadError, setLoadError] = useState<string>();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [notice, setNotice] = useState<string>();
+  const [publishing, setPublishing] = useState(false);
   // Bumped after a change, to reload the week.
   const [version, setVersion] = useState(0);
 
@@ -53,6 +54,7 @@ export function ScheduleView() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
   const shifts = schedule?.shifts ?? [];
+  const drafts = shifts.filter((s) => !s.published).length;
   const stations = [...new Set(shifts.map((s) => s.station))].sort();
   const shiftsOn = (memberId: string, day: Date) => shifts.filter((s) => s.memberId === memberId && sameDay(new Date(s.startsAt), day));
   const offOn = (memberId: string, day: Date) =>
@@ -61,6 +63,19 @@ export function ScheduleView() {
   const goTo = (d: Date) => {
     setWeekStart(d);
     setNotice(undefined);
+  };
+
+  const publish = async () => {
+    if (!role) return;
+    setPublishing(true);
+    const { data, error } = await browserApi.POST("/hr/shifts/publish", {
+      headers: authHeaders(role),
+      body: { from: weekStart.toISOString(), to: addDays(weekStart, 7).toISOString() },
+    });
+    setPublishing(false);
+    if (error) return setNotice(problemMessage(error));
+    setNotice(`Published ${data.published} ${data.published === 1 ? "shift" : "shifts"}. Your team can see them now.`);
+    setVersion((v) => v + 1);
   };
 
   return (
@@ -82,8 +97,11 @@ export function ScheduleView() {
             <span className="ml-2 font-bold">
               Week of {formatDay(weekStart.toISOString())} – {formatDay(addDays(weekStart, 6).toISOString())}
             </span>
+            <Button className="ml-auto" onClick={() => void publish()} disabled={publishing || drafts === 0}>
+              {publishing ? "Publishing…" : drafts ? `Publish week (${drafts} ${drafts === 1 ? "draft" : "drafts"})` : "Week published"}
+            </Button>
           </div>
-          <p className="text-muted">Drafts are only visible to supervisors. Click a shift to change it, or + to add one.</p>
+          <p className="text-muted">Drafts are only visible to you until you publish. Click a shift to change it, or + to add one.</p>
         </>
       }
     >

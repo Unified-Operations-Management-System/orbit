@@ -59,6 +59,16 @@ export function ShiftDialog({
     onDone(shift ? `Saved ${name}'s shift on ${formatDay(from.toISOString())}.` : `Added a draft shift for ${name} on ${formatDay(from.toISOString())}.`);
   };
 
+  // Only drafts can be deleted; a published shift is moved instead so the employee is told.
+  const remove = async () => {
+    if (!role || !shift) return;
+    setBusy(true);
+    const { error } = await browserApi.DELETE("/hr/shifts/{shiftId}", { headers: authHeaders(role), params: { path: { shiftId: shift.id } } });
+    setBusy(false);
+    if (error) return setError(problemMessage(error));
+    onDone(`Deleted the draft shift for ${name} on ${formatDay(shift.startsAt)}.`);
+  };
+
   return (
     <Dialog open onClose={onClose} title={shift ? `${name}, ${formatDay(shift.startsAt)}` : "Add a shift"}>
       <div className="mb-4 flex flex-col gap-4">
@@ -100,6 +110,11 @@ export function ShiftDialog({
         {error ? <Alert tone="error" title={error} /> : null}
       </div>
       <div className="flex justify-end gap-2">
+        {shift && !shift.published ? (
+          <Button variant="secondary" className="mr-auto" onClick={() => void remove()} disabled={busy}>
+            Delete draft
+          </Button>
+        ) : null}
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
