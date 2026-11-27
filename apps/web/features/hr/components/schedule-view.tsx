@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { Alert, Button, EmptyState, Panel, stickyHeadCell } from "@/components/ui";
 import { browserApi } from "@/lib/api/browser";
 import { authHeaders, useRole } from "@/lib/role";
-import { problemMessage, type HrEmployee, type Schedule } from "../api";
+import { problemMessage, type HrEmployee, type Schedule, type Shift } from "../api";
 import { formatDay, formatTime } from "../format";
 import { addDays, sameDay, startOfWeek } from "../week";
+import { ShiftDialog } from "./shift-dialog";
+
+type Editing = { shift?: Shift; memberId?: string; day?: Date };
 
 // SCRUM-14: a supervisor builds the week for their team. Drafts are
 // only visible to schedulers; employees see a shift once it's published (UC-HR-03).
@@ -16,6 +19,10 @@ export function ScheduleView() {
   const [schedule, setSchedule] = useState<Schedule>();
   const [people, setPeople] = useState<HrEmployee[]>([]);
   const [loadError, setLoadError] = useState<string>();
+  const [editing, setEditing] = useState<Editing | null>(null);
+  const [notice, setNotice] = useState<string>();
+  // Bumped after a change, to reload the week.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!role) return;
@@ -41,16 +48,20 @@ export function ScheduleView() {
     return () => {
       live = false;
     };
-  }, [role, weekStart]);
+  }, [role, weekStart, version]);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
   const shifts = schedule?.shifts ?? [];
+  const stations = [...new Set(shifts.map((s) => s.station))].sort();
   const shiftsOn = (memberId: string, day: Date) => shifts.filter((s) => s.memberId === memberId && sameDay(new Date(s.startsAt), day));
   const offOn = (memberId: string, day: Date) =>
     schedule?.timeOff.find((t) => t.memberId === memberId && new Date(t.startsAt) < addDays(day, 1) && new Date(t.endsAt) > day);
 
-  const goTo = setWeekStart;
+  const goTo = (d: Date) => {
+    setWeekStart(d);
+    setNotice(undefined);
+  };
 
   return (
     <Panel
@@ -72,10 +83,15 @@ export function ScheduleView() {
               Week of {formatDay(weekStart.toISOString())} – {formatDay(addDays(weekStart, 6).toISOString())}
             </span>
           </div>
-          <p className="text-muted">Drafts are only visible to supervisors.</p>
+          <p className="text-muted">Drafts are only visible to supervisors. Click a shift to change it, or + to add one.</p>
         </>
       }
     >
+      {notice ? (
+        <div className="mb-3">
+          <Alert tone="success" title={notice} />
+        </div>
+      ) : null}
       {loadError ? (
         <Alert tone="error" title={`Couldn't load the schedule: ${loadError}`} />
       ) : !schedule ? (
@@ -103,16 +119,21 @@ export function ScheduleView() {
                 </td>
                 {days.map((d) => {
                   const off = offOn(p.id, d);
+                  const past = addDays(d, 1) <= today;
                   return (
                     <td key={d.toISOString()} className="py-2 pr-2">
                       <div className="flex flex-col gap-1.5">
                         {off ? <div className="bg-surface px-2 py-1 text-sm font-bold text-blue">{off.kind}</div> : null}
                         {shiftsOn(p.id, d).map((s) => {
+                          const started = new Date(s.startsAt) <= today;
                           return (
-                            <div
+                            <button
                               key={s.id}
-                              title={s.changeNote}
-                              className={`border-l-4 bg-surface px-2 py-1 text-sm ${s.published ? "border-blue" : "border-dashed border-yellow"}`}
+                              type="button"
+                              disabled={started}
+                              title={started ? "Already started" : s.changeNote}
+                              onClick={() => setEditing({ shift: s })}
+                              className={`border-l-4 bg-surface px-2 py-1 text-left text-sm disabled:opacity-60 ${s.published ? "border-blue" : "border-dashed border-yellow"}`}
                             >
                               <span className="block font-bold">
                                 {formatTime(s.startsAt)} – {formatTime(s.endsAt)}
@@ -120,9 +141,19 @@ export function ScheduleView() {
                               <span className="block truncate text-muted">{s.station}</span>
                               {!s.published ? <span className="block text-xs font-bold uppercase tracking-[0.12em]">Draft</span> : null}
                               {s.published && s.changeNote ? <span className="block text-xs font-bold uppercase tracking-[0.12em] text-blue">Updated</span> : null}
-                            </div>
+                            </button>
                           );
                         })}
+                        {past ? null : (
+                          <button
+                            type="button"
+                            aria-label={`Add a shift for ${p.name} on ${formatDay(d.toISOString())}`}
+                            onClick={() => setEditing({ memberId: p.id, day: d })}
+                            className="border border-dashed border-line px-2 py-1 text-left text-sm text-muted hover:border-ink hover:text-ink"
+                          >
+                            +
+                          </button>
+                        )}
                       </div>
                     </td>
                   );
@@ -133,6 +164,21 @@ export function ScheduleView() {
         </table>
       )}
 
+      {editing ? (
+        <ShiftDialog
+          shift={editing.shift}
+          memberId={editing.memberId}
+          day={editing.day}
+          people={people}
+          stations={stations}
+          onClose={() => setEditing(null)}
+          onDone={(message) => {
+            setEditing(null);
+            setNotice(message);
+            setVersion((v) => v + 1);
+          }}
+        />
+      ) : null}
     </Panel>
   );
 }
